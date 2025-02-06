@@ -19,4 +19,26 @@ export async function DELETE(
       { status: 500 }
     );
   }
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const data = await request.json();
+    const lead = await prisma.lead.update({
+      where: {
+        id: parseInt(params.id)
+      },
+      data
+    });
+    return NextResponse.json(lead);
+  } catch (error) {
+    console.error('Error updating lead:', error);
+    return NextResponse.json(
+      { error: 'Failed to update lead' },
+      { status: 500 }
+    );
+  }
 } 
