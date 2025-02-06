@@ -1,0 +1,40 @@
+{
+  "name": "crm-system",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.3.0",
+    "@types/react-color": "^3.0.13",
+    "bcryptjs": "^2.4.3",
+    "jose": "^5.9.6",
+    "jsonwebtoken": "^9.0.2",
+    "next": "14.x",
+    "nodemailer": "^6.10.0",
+    "react": "18.x",
+    "react-color": "^2.19.3",
+    "react-dom": "18.x",
+    "react-icons": "^4.x"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.8",
+    "@types/node": "^20.x",
+    "@types/react": "^18.x",
+    "@types/react-dom": "^18.x",
+    "autoprefixer": "^10.x",
+    "postcss": "^8.x",
+    "prisma": "^6.3.0",
+    "tailwindcss": "^3.x",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.x"
+  },
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+  }
+}
