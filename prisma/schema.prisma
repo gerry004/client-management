@@ -13,7 +13,6 @@ model User {
   email     String   @unique @map("email")
   password  String   @map("password")
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
   @@map("users")
 }
 
@@ -24,5 +23,4 @@ model Lead {
   email     String?   @unique @map("email")
   phone     String?   @map("phone")
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
 }
