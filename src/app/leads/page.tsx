@@ -38,7 +38,6 @@ export default function LeadsPage() {
     phone: '',
   });
   const [user, setUser] = useState<User | null>(null);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingCell, setEditingCell] = useState<{
     id: number;
     field: keyof Lead;
