@@ -1,10 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { FiTrash2 } from 'react-icons/fi';
 import Modal from '@/components/Modal';
 import Sidebar from '@/components/Sidebar';
+import TagDropdown from '@/components/TagDropdown';
+
+interface Tag {
+  id: number;
+  name: string;
+  color: string;
+}
 
 interface Lead {
   id: number;
@@ -13,6 +20,8 @@ interface Lead {
   email: string | null;
   phone: string | null;
   createdAt: string;
+  tagId: number | null;
+  tag: Tag | null;
 }
 
 interface SortConfig {
@@ -23,6 +32,111 @@ interface SortConfig {
 interface User {
   name: string;
   email: string;
+}
+
+function EditableCell({ 
+  value, 
+  onChange, 
+  onBlur 
+}: { 
+  value: string; 
+  onChange: (value: string) => void;
+  onBlur: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      inputRef.current?.blur();
+    }
+  };
+
+  return (
+    <div className="relative -m-2">
+      <input
+        ref={inputRef}
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={onBlur}
+        onKeyDown={handleKeyDown}
+        className="w-full px-3 py-1.5 bg-[#3f3f3f] border border-blue-500 rounded outline-none text-white shadow-sm"
+      />
+    </div>
+  );
+}
+
+function TagCell({ 
+  lead, 
+  isEditing, 
+  onEdit, 
+  tags, 
+  handleCellEdit, 
+  handleCreateTag,
+  handleDeleteTag,
+  setEditingCell 
+}: {
+  lead: Lead;
+  isEditing: boolean;
+  onEdit: () => void;
+  tags: Tag[];
+  handleCellEdit: (id: number, field: keyof Lead, value: string | number) => void;
+  handleCreateTag: (name: string) => Promise<Tag | null>;
+  handleDeleteTag: (tagId: number) => Promise<void>;
+  setEditingCell: (cell: { id: number; field: keyof Lead; value: string; } | null) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setEditingCell(null);
+      }
+    };
+
+    if (isEditing) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isEditing, setEditingCell]);
+
+  return (
+    <div ref={containerRef} className="relative w-48">
+      {isEditing ? (
+        <TagDropdown
+          tags={tags}
+          selectedTag={lead.tag}
+          onSelect={(tag) => {
+            handleCellEdit(lead.id, 'tagId', tag.id);
+          }}
+          onCreateTag={async (name) => {
+            const newTag = await handleCreateTag(name);
+            if (newTag) {
+              handleCellEdit(lead.id, 'tagId', newTag.id);
+            }
+          }}
+          onDeleteTag={handleDeleteTag}
+        />
+      ) : (
+        <div className="cursor-pointer" onClick={onEdit}>
+          {lead.tag ? (
+            <span
+              className="px-2 py-1 rounded text-sm"
+              style={{ backgroundColor: lead.tag.color + '20', color: lead.tag.color }}
+            >
+              {lead.tag.name}
+            </span>
+          ) : '-'}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function LeadsPage() {
@@ -36,6 +150,7 @@ export default function LeadsPage() {
     company: '',
     email: '',
     phone: '',
+    tagId: null as number | null,
   });
   const [user, setUser] = useState<User | null>(null);
   const [editingCell, setEditingCell] = useState<{
@@ -43,11 +158,17 @@ export default function LeadsPage() {
     field: keyof Lead;
     value: string;
   } | null>(null);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [tagSearch, setTagSearch] = useState('');
+  const [isTagDropdownOpen, setIsTagDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [selectedModalTag, setSelectedModalTag] = useState<Tag | null>(null);
   
   const router = useRouter();
 
   useEffect(() => {
     fetchLeads();
+    fetchTags();
     const fetchUser = async () => {
       try {
         const response = await fetch('/api/auth/user');
@@ -62,6 +183,18 @@ export default function LeadsPage() {
     fetchUser();
   }, [sortConfig]);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsTagDropdownOpen(false);
+        setTagSearch('');
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const fetchLeads = async () => {
     try {
       const response = await fetch(
@@ -74,6 +207,17 @@ export default function LeadsPage() {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchTags = async () => {
+    try {
+      const response = await fetch('/api/tags');
+      if (!response.ok) throw new Error('Failed to fetch tags');
+      const data = await response.json();
+      setTags(data);
+    } catch (err) {
+      console.error('Error fetching tags:', err);
     }
   };
 
@@ -110,7 +254,7 @@ export default function LeadsPage() {
       if (!response.ok) throw new Error('Failed to create lead');
       
       setIsModalOpen(false);
-      setNewLead({ name: '', company: '', email: '', phone: '' });
+      setNewLead({ name: '', company: '', email: '', phone: '', tagId: null });
       await fetchLeads();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create lead');
@@ -122,39 +266,119 @@ export default function LeadsPage() {
     setNewLead(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      router.push('/');
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  };
-
-  const handleCellEdit = async (id: number, field: keyof Lead, value: string) => {
-    if (field === 'createdAt') return; // Prevent editing createdAt
+  const handleCellEdit = async (id: number, field: keyof Lead, value: string | number) => {
+    if (field === 'createdAt') return;
     
     try {
       const response = await fetch(`/api/leads/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [field]: value }),
+        body: JSON.stringify({ [field]: field === 'tagId' ? Number(value) || null : value }),
       });
       
       if (!response.ok) throw new Error('Failed to update lead');
       
-      const updatedLead = await response.json();
-      setLeads(current =>
-        current.map(lead =>
-          lead.id === id ? { ...lead, [field]: value } : lead
-        )
-      );
+      await fetchLeads();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update lead');
     } finally {
       setEditingCell(null);
     }
   };
+
+  const handleCreateTag = async (name: string) => {
+    try {
+      const response = await fetch('/api/tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, color: '#3B82F6' }),
+      });
+      
+      if (!response.ok) throw new Error('Failed to create tag');
+      
+      const newTag = await response.json();
+      setTags(prev => [...prev, newTag]);
+      return newTag;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create tag');
+      return null;
+    }
+  };
+
+  const handleDeleteTag = async (tagId: number) => {
+    try {
+      const response = await fetch(`/api/tags/${tagId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) throw new Error('Failed to delete tag');
+      
+      setTags(prev => prev.filter(tag => tag.id !== tagId));
+      setLeads(prev => prev.map(lead => 
+        lead.tagId === tagId ? { ...lead, tagId: null, tag: null } : lead
+      ));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete tag');
+    }
+  };
+
+  const renderCell = (lead: Lead, field: keyof Lead) => {
+    const isEditing = editingCell?.id === lead.id && editingCell?.field === field;
+
+    if (field === 'tagId') {
+      return (
+        <TagCell
+          lead={lead}
+          isEditing={isEditing}
+          onEdit={() => {
+            setEditingCell({
+              id: lead.id,
+              field: 'tagId',
+              value: String(lead.tagId || '')
+            });
+          }}
+          tags={tags}
+          handleCellEdit={handleCellEdit}
+          handleCreateTag={handleCreateTag}
+          handleDeleteTag={handleDeleteTag}
+          setEditingCell={setEditingCell}
+        />
+      );
+    }
+
+    if (field === 'createdAt') {
+      return new Date(lead[field]).toLocaleDateString();
+    }
+
+    return isEditing ? (
+      <EditableCell
+        value={editingCell.value}
+        onChange={(value) => {
+          setEditingCell(prev => prev ? { ...prev, value } : null);
+        }}
+        onBlur={() => {
+          if (editingCell) {
+            handleCellEdit(lead.id, field, editingCell.value);
+          }
+        }}
+      />
+    ) : (
+      <div
+        className="cursor-pointer"
+        onClick={() => {
+          setEditingCell({
+            id: lead.id,
+            field,
+            value: String(lead[field] || '')
+          });
+        }}
+      >
+        {lead[field]?.toString() || '-'}
+      </div>
+    );
+  };
+
+  const headers = ['Name', 'Company', 'Email', 'Phone', 'Tag', 'Created At', 'Actions'];
 
   return (
     <div className="flex h-screen bg-[#1f1f1f]">
@@ -165,12 +389,14 @@ export default function LeadsPage() {
         <div className="p-8">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold text-white">Leads</h1>
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-            >
-              Add Lead
-            </button>
+            <div className="space-x-3">
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+              >
+                Add Lead
+              </button>
+            </div>
           </div>
 
           {error && (
@@ -186,7 +412,7 @@ export default function LeadsPage() {
               <table className="w-full">
                 <thead className="bg-[#2f2f2f]">
                   <tr>
-                    {['Name', 'Company', 'Email', 'Phone', 'Created At', 'Actions'].map((header) => (
+                    {headers.map((header) => (
                       <th
                         key={header}
                         onClick={() => header !== 'Actions' && handleSort(header === 'Created At' ? 'createdAt' : header.toLowerCase() as keyof Lead)}
@@ -207,39 +433,12 @@ export default function LeadsPage() {
                 <tbody className="divide-y divide-[#2f2f2f]">
                   {leads.map((lead) => (
                     <tr key={lead.id} className="hover:bg-[#2f2f2f]">
-                      {['name', 'company', 'email', 'phone', 'createdAt'].map((field) => (
+                      {['name', 'company', 'email', 'phone', 'tagId', 'createdAt'].map((field) => (
                         <td
                           key={field}
                           className="px-6 py-4 whitespace-nowrap text-gray-300"
-                          onClick={() => {
-                            if (field !== 'createdAt') {
-                              setEditingCell({
-                                id: lead.id,
-                                field: field as keyof Lead,
-                                value: String(lead[field as keyof Lead] || '')
-                              });
-                            }
-                          }}
                         >
-                          {editingCell?.id === lead.id && editingCell?.field === field ? (
-                            <input
-                              type={field === 'email' ? 'email' : 'text'}
-                              value={editingCell.value}
-                              onChange={(e) => setEditingCell({
-                                ...editingCell,
-                                value: e.target.value
-                              })}
-                              onBlur={() => handleCellEdit(lead.id, field as keyof Lead, editingCell.value)}
-                              className="w-full bg-[#2f2f2f] text-white px-2 py-1 rounded border border-gray-600 focus:outline-none focus:border-blue-500"
-                              autoFocus
-                            />
-                          ) : (
-                            <div className="cursor-pointer">
-                              {field === 'createdAt'
-                                ? new Date(lead[field]).toLocaleDateString()
-                                : lead[field as keyof Lead] || '-'}
-                            </div>
-                          )}
+                          {renderCell(lead, field as keyof Lead)}
                         </td>
                       ))}
                       <td className="px-6 py-4 whitespace-nowrap text-gray-300">
@@ -261,7 +460,11 @@ export default function LeadsPage() {
 
       <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedModalTag(null);
+          setTagSearch('');
+        }}
         title="Add New Lead"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -312,6 +515,30 @@ export default function LeadsPage() {
               value={newLead.phone}
               onChange={handleInputChange}
               className="w-full px-4 py-2 bg-[#2f2f2f] rounded-md border border-gray-700 focus:outline-none focus:border-blue-500 text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Tag
+            </label>
+            <TagDropdown
+              tags={tags}
+              selectedTag={selectedModalTag}
+              onSelect={(tag: Tag) => {
+                setNewLead(prev => ({ ...prev, tagId: tag.id }));
+                setSelectedModalTag(tag);
+                setIsTagDropdownOpen(false);
+                setTagSearch('');
+              }}
+              onCreateTag={async (name: string) => {
+                const newTag = await handleCreateTag(name);
+                if (newTag) {
+                  setNewLead(prev => ({ ...prev, tagId: newTag.id }));
+                  setSelectedModalTag(newTag);
+                  setIsTagDropdownOpen(false);
+                  setTagSearch('');
+                }
+              }}
             />
           </div>
           <div className="flex justify-end space-x-3 mt-6">
