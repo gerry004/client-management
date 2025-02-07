@@ -464,6 +464,13 @@ export default function LeadsPage() {
           setIsModalOpen(false);
           setSelectedModalTag(null);
           setTagSearch('');
+          setNewLead({
+            name: '',
+            company: '',
+            email: '',
+            phone: '',
+            tagId: null,
+          });
         }}
         title="Add New Lead"
       >
