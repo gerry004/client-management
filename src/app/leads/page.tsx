@@ -527,18 +527,15 @@ export default function LeadsPage() {
               onSelect={(tag: Tag) => {
                 setNewLead(prev => ({ ...prev, tagId: tag.id }));
                 setSelectedModalTag(tag);
-                setIsTagDropdownOpen(false);
-                setTagSearch('');
               }}
               onCreateTag={async (name: string) => {
                 const newTag = await handleCreateTag(name);
                 if (newTag) {
                   setNewLead(prev => ({ ...prev, tagId: newTag.id }));
                   setSelectedModalTag(newTag);
-                  setIsTagDropdownOpen(false);
-                  setTagSearch('');
                 }
               }}
+              onDeleteTag={handleDeleteTag}
             />
           </div>
           <div className="flex justify-end space-x-3 mt-6">

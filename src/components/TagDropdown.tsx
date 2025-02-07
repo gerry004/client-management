@@ -60,7 +60,8 @@ export default function TagDropdown({ tags, selectedTag, onSelect, onCreateTag, 
   };
 
   const handleDeleteTag = async (e: React.MouseEvent, tagId: number) => {
-    e.stopPropagation();
+    e.stopPropagation();  // Prevent tag selection
+    e.preventDefault();   // Prevent form submission
     if (!onDeleteTag) return;
     
     if (confirm('Are you sure you want to delete this tag? This will remove the tag from all leads.')) {
