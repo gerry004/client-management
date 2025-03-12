@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import nodemailer from 'nodemailer';
-import { parseEmail, createEmailContent } from '../src/lib/email-utils';
+import { parseEmail, createEmailContent } from '../src/lib/email-utils.js';
 
 const prisma = new PrismaClient();
 
@@ -25,6 +25,7 @@ async function checkSendingCriteria(leadId: number, sequenceId: number): Promise
 }
 
 async function processEmails() {
+  console.log("Processing emails")
   try {
     // Get all active campaigns and their sequences
     const campaigns = await prisma.emailCampaign.findMany({

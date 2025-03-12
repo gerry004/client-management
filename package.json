@@ -1,13 +1,14 @@
 {
   "name": "crm-system",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
-    "process-emails": "ts-node scripts/process-emails.ts"
+    "process-emails": "node --import ./scripts/loader.mjs scripts/process-emails.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.3.0",
