@@ -13,22 +13,13 @@ export async function GET(request: Request) {
     const sortField = searchParams.get('sortField') || 'createdAt';
     const sortOrder = (searchParams.get('sortOrder') || 'desc') as 'asc' | 'desc';
 
-    // Special handling for tag sorting
-    const orderBy = sortField === 'tag' 
-      ? {
-          tag: {
-            name: sortOrder
-          }
-        }
-      : {
-          [sortField]: sortOrder
-        };
-
     const leads = await prisma.lead.findMany({
       include: {
-        tag: true
+        segment: true
       },
-      orderBy
+      orderBy: {
+        [sortField]: sortOrder
+      }
     });
 
     return new NextResponse(JSON.stringify(leads), {

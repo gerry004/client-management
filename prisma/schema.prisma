@@ -16,23 +16,22 @@ model User {
   @@map("users")
 }
 
-model Tag {
+model Segment {
   id        Int      @id @default(autoincrement())
   name      String   
-  color     String   @default("#3B82F6") // Default blue color
-  leads     Lead[]
   createdAt DateTime @default(now()) @map("created_at")
-  @@map("tags")
+  leads     Lead[]
+  @@map("segments")
 }
 
 model Lead {
-  id        Int      @id @default(autoincrement())
-  name      String   @map("name")
-  company   String?  @map("company")
-  email     String?  @map("email")
-  phone     String?  @map("phone")
-  tagId     Int?     @map("tag_id")
-  tag       Tag?     @relation(fields: [tagId], references: [id])
-  createdAt DateTime @default(now()) @map("created_at")
+  id        Int       @id @default(autoincrement())
+  name      String    @map("name")
+  company   String?   @map("company")
+  email     String?   @map("email")
+  phone     String?   @map("phone")
+  segmentId Int?      @map("segment_id")
+  segment   Segment?  @relation(fields: [segmentId], references: [id])
+  createdAt DateTime  @default(now()) @map("created_at")
   @@map("leads")
 }
