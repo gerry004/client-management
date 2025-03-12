@@ -4,26 +4,6 @@ import { parseEmail, createEmailContent } from '../src/lib/email-utils.js';
 
 const prisma = new PrismaClient();
 
-async function checkSendingCriteria(leadId: number, sequenceId: number): Promise<boolean> {
-  const lastEmail = await prisma.emailTracking.findFirst({
-    where: { leadId, sequenceId },
-    orderBy: { sentAt: 'desc' }
-  });
-
-  if (!lastEmail) return true; // No email sent yet, ok to send
-
-  const sequence = await prisma.emailSequence.findUnique({
-    where: { id: sequenceId }
-  });
-
-  if (!sequence) return false;
-
-  const delayInMs = sequence.delayDays * 24 * 60 * 60 * 1000;
-  const nextSendDate = new Date(lastEmail.sentAt.getTime() + delayInMs);
-
-  return new Date() >= nextSendDate;
-}
-
 async function processEmails() {
   console.log("Processing emails")
   try {
@@ -55,29 +35,27 @@ async function processEmails() {
 
     for (const campaign of campaigns) {
       for (const lead of campaign.segment.leads) {
-        for (const sequence of campaign.sequences) {
-          // Check if email should be sent based on delay
-          const shouldSend = await checkSendingCriteria(lead.id, sequence.id);
+        // Find the next sequence that should be sent for this lead
+        const { nextSequence, canSendNow } = await findNextSequenceToSend(lead.id, campaign.sequences);
+        
+        if (nextSequence && lead.email && canSendNow) {
+          const emailContent = createEmailContent(nextSequence.content, lead);
           
-          if (shouldSend && lead.email) {
-            const emailContent = createEmailContent(sequence.content, lead);
-            
-            await transporter.sendMail({
-              from: process.env.EMAIL_FROM,
-              to: lead.email,
-              subject: sequence.subject,
-              html: emailContent,
-            });
+          await transporter.sendMail({
+            from: process.env.EMAIL_FROM,
+            to: lead.email,
+            subject: nextSequence.subject,
+            html: emailContent,
+          });
 
-            // Record the email sending
-            await prisma.emailTracking.create({
-              data: {
-                leadId: lead.id,
-                sequenceId: sequence.id,
-                sentAt: new Date(),
-              }
-            });
-          }
+          // Record the email sending
+          await prisma.emailTracking.create({
+            data: {
+              leadId: lead.id,
+              sequenceId: nextSequence.id,
+              sentAt: new Date(),
+            }
+          });
         }
       }
     }
@@ -86,6 +64,64 @@ async function processEmails() {
   } finally {
     await prisma.$disconnect();
   }
+}
+
+// Updated helper function to find the next sequence and check if it can be sent now
+async function findNextSequenceToSend(leadId: number, sequences: any[]): Promise<{ nextSequence: any | null, canSendNow: boolean }> {
+  if (!sequences.length) return { nextSequence: null, canSendNow: false };
+  
+  // Get all emails that have been sent to this lead
+  const sentEmails = await prisma.emailTracking.findMany({
+    where: { leadId },
+    orderBy: { sentAt: 'desc' }
+  });
+  
+  // If no emails have been sent, return the first sequence
+  if (sentEmails.length === 0) {
+    return { nextSequence: sequences[0], canSendNow: true };
+  }
+  
+  // Create a map of sequence IDs that have been sent
+  const sentSequenceIds = new Set(sentEmails.map(email => email.sequenceId));
+  
+  // Find the first sequence that hasn't been sent yet
+  for (const sequence of sequences) {
+    if (!sentSequenceIds.has(sequence.id)) {
+      // This is the next sequence to send
+      
+      // If this is the first sequence, we can send it
+      if (sequence.orderIndex === 0) {
+        return { nextSequence: sequence, canSendNow: true };
+      }
+      
+      // Find the previous sequence
+      const previousSequence = sequences.find(s => s.orderIndex === sequence.orderIndex - 1);
+      
+      if (!previousSequence) {
+        return { nextSequence: sequence, canSendNow: true };
+      }
+      
+      // Find the most recent sending of the previous sequence
+      const previousSequenceEmail = sentEmails.find(email => email.sequenceId === previousSequence.id);
+      
+      if (!previousSequenceEmail) {
+        // Previous sequence hasn't been sent, which shouldn't happen
+        return { nextSequence: null, canSendNow: false };
+      }
+      
+      // Check if enough time has passed since the previous sequence
+      const delayInMs = sequence.delayDays * 24 * 60 * 60 * 1000;
+      const nextSendDate = new Date(previousSequenceEmail.sentAt.getTime() + delayInMs);
+      
+      return { 
+        nextSequence: sequence, 
+        canSendNow: new Date() >= nextSendDate 
+      };
+    }
+  }
+  
+  // If all sequences have been sent, return null
+  return { nextSequence: null, canSendNow: false };
 }
 
 processEmails(); 
