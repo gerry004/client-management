@@ -82,9 +82,6 @@ async function findNextSequenceToSend(leadId: number, sequences: any[]): Promise
   
   console.log("sentEmails", sentEmails);
   
-  // Get all sequence IDs for this campaign
-  const campaignSequenceIds = sequences.map(seq => seq.id);
-  
   // Find the highest order index that has been sent for this campaign
   // We'll look at the order indices of sequences in the current campaign configuration
   let highestSentOrderIndex = -1;
