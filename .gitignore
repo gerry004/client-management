@@ -46,4 +46,6 @@ prisma/seed.ts
 # Misc
 .cache
 .temp
-.tmp 
+.tmp
+
+credentials.json
