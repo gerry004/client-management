@@ -21,6 +21,7 @@
     "next": "14.x",
     "next-auth": "^4.24.11",
     "nodemailer": "^6.10.0",
+    "open": "^10.1.0",
     "react": "18.x",
     "react-color": "^2.19.3",
     "react-dom": "18.x",
