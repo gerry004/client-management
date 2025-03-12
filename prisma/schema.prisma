@@ -22,6 +22,7 @@ model Segment {
   createdAt DateTime @default(now()) @map("created_at")
   leads     Lead[]
   @@map("segments")
+  EmailCampaign EmailCampaign[]
 }
 
 model Lead {
@@ -33,5 +34,46 @@ model Lead {
   segmentId Int?      @map("segment_id")
   segment   Segment?  @relation(fields: [segmentId], references: [id])
   createdAt DateTime  @default(now()) @map("created_at")
+  emailTracking EmailTracking[]
   @@map("leads")
+}
+
+model EmailCampaign {
+  id          Int       @id @default(autoincrement())
+  name        String
+  segmentId   Int
+  segment     Segment   @relation(fields: [segmentId], references: [id])
+  sequences   EmailSequence[]
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  @@map("email_campaigns")
+}
+
+model EmailSequence {
+  id            Int       @id @default(autoincrement())
+  campaignId    Int       @map("campaign_id")
+  campaign      EmailCampaign @relation(fields: [campaignId], references: [id])
+  subject       String
+  content       String    @db.Text
+  delayDays     Int       @map("delay_days")
+  orderIndex    Int       @map("order_index")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  @@map("email_sequences")
+  EmailTracking EmailTracking[]
+}
+
+model EmailTracking {
+  id            Int       @id @default(autoincrement())
+  leadId        Int       @map("lead_id")
+  lead          Lead      @relation(fields: [leadId], references: [id])
+  sequenceId    Int       @map("sequence_id")
+  sequence      EmailSequence @relation(fields: [sequenceId], references: [id])
+  opened        Boolean   @default(false)
+  openCount     Int       @default(0) @map("open_count")
+  replied       Boolean   @default(false)
+  sentAt        DateTime  @map("sent_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  @@map("email_tracking")
 }
