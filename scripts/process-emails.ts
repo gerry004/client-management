@@ -70,58 +70,90 @@ async function processEmails() {
 async function findNextSequenceToSend(leadId: number, sequences: any[]): Promise<{ nextSequence: any | null, canSendNow: boolean }> {
   if (!sequences.length) return { nextSequence: null, canSendNow: false };
   
-  // Get all emails that have been sent to this lead
+  const campaignId = sequences[0].campaignId;
+  console.log("campaignId", campaignId);
+  
+  // Get all tracking records for this lead
   const sentEmails = await prisma.emailTracking.findMany({
     where: { leadId },
-    orderBy: { sentAt: 'desc' }
+    orderBy: { sentAt: 'desc' },
+    include: { sequence: true }
   });
   
-  // If no emails have been sent, return the first sequence
-  if (sentEmails.length === 0) {
-    return { nextSequence: sequences[0], canSendNow: true };
-  }
+  console.log("sentEmails", sentEmails);
   
-  // Create a map of sequence IDs that have been sent
-  const sentSequenceIds = new Set(sentEmails.map(email => email.sequenceId));
+  // Get all sequence IDs for this campaign
+  const campaignSequenceIds = sequences.map(seq => seq.id);
   
-  // Find the first sequence that hasn't been sent yet
-  for (const sequence of sequences) {
-    if (!sentSequenceIds.has(sequence.id)) {
-      // This is the next sequence to send
+  // Find the highest order index that has been sent for this campaign
+  // We'll look at the order indices of sequences in the current campaign configuration
+  let highestSentOrderIndex = -1;
+  
+  // First, try to find emails with valid sequence references
+  const validEmails = sentEmails.filter(email => 
+    email.sequence && email.sequence.campaignId === campaignId
+  );
+  
+  if (validEmails.length > 0) {
+    // We have valid emails with sequence references
+    const orderIndices = validEmails.map(email => email.sequence.orderIndex);
+    highestSentOrderIndex = Math.max(...orderIndices);
+  } else {
+    // If we don't have valid sequence references, check if we have any emails
+    // that were sent for this campaign before the sequences were recreated
+    
+    // Get all campaigns to check for name matches
+    const allCampaigns = await prisma.emailCampaign.findMany();
+    const thisCampaign = allCampaigns.find(c => c.id === campaignId);
+    
+    if (thisCampaign) {
+      // Count how many distinct emails have been sent to this lead for this campaign
+      // This is a fallback approach when sequence references are broken
+      const emailCount = await prisma.$queryRaw`
+        SELECT COUNT(DISTINCT et.sequence_id) 
+        FROM email_tracking et
+        JOIN email_sequences es ON et.sequence_id = es.id
+        WHERE et.lead_id = ${leadId}
+        AND es.campaign_id = ${campaignId}
+      `;
       
-      // If this is the first sequence, we can send it
-      if (sequence.orderIndex === 0) {
-        return { nextSequence: sequence, canSendNow: true };
+      // If we have sent emails, set the highest order index to the count - 1
+      // This assumes sequences are sent in order
+      if (Array.isArray(emailCount) && emailCount[0] && typeof emailCount[0].count === 'number') {
+        highestSentOrderIndex = emailCount[0].count - 1;
       }
-      
-      // Find the previous sequence
-      const previousSequence = sequences.find(s => s.orderIndex === sequence.orderIndex - 1);
-      
-      if (!previousSequence) {
-        return { nextSequence: sequence, canSendNow: true };
-      }
-      
-      // Find the most recent sending of the previous sequence
-      const previousSequenceEmail = sentEmails.find(email => email.sequenceId === previousSequence.id);
-      
-      if (!previousSequenceEmail) {
-        // Previous sequence hasn't been sent, which shouldn't happen
-        return { nextSequence: null, canSendNow: false };
-      }
-      
-      // Check if enough time has passed since the previous sequence
-      const delayInMs = sequence.delayDays * 24 * 60 * 60 * 1000;
-      const nextSendDate = new Date(previousSequenceEmail.sentAt.getTime() + delayInMs);
-      
-      return { 
-        nextSequence: sequence, 
-        canSendNow: new Date() >= nextSendDate 
-      };
     }
   }
   
-  // If all sequences have been sent, return null
-  return { nextSequence: null, canSendNow: false };
+  console.log("highestSentOrderIndex", highestSentOrderIndex);
+  
+  // Sort sequences by orderIndex
+  const sortedSequences = [...sequences].sort((a, b) => a.orderIndex - b.orderIndex);
+  
+  // Find the next sequence to send
+  const nextSequence = sortedSequences.find(seq => seq.orderIndex > highestSentOrderIndex);
+  
+  if (!nextSequence) {
+    // All sequences have been sent
+    return { nextSequence: null, canSendNow: false };
+  }
+  
+  // For delay calculation, find the most recent email sent
+  const mostRecentEmail = sentEmails[0]; // Already ordered by sentAt desc
+  
+  if (!mostRecentEmail) {
+    // No previous emails, can send immediately
+    return { nextSequence, canSendNow: true };
+  }
+  
+  // Check if enough time has passed
+  const delayInMs = nextSequence.delayDays * 24 * 60 * 60 * 1000;
+  const nextSendDate = new Date(mostRecentEmail.sentAt.getTime() + delayInMs);
+  
+  return { 
+    nextSequence, 
+    canSendNow: new Date() >= nextSendDate 
+  };
 }
 
 processEmails(); 
