@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FiPlus, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiX } from 'react-icons/fi';
 import Sidebar from '@/components/Sidebar';
 
 interface Segment {
@@ -28,6 +28,210 @@ interface Campaign {
 interface User {
   name: string;
   email: string;
+}
+
+interface CreateCampaignForm {
+  name: string;
+  segmentId: number;
+  sequences: {
+    subject: string;
+    content: string;
+    delayDays: number;
+    orderIndex: number;
+  }[];
+}
+
+function CreateCampaignModal({ 
+  isOpen, 
+  onClose, 
+  segments, 
+  onSubmit 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  segments: Segment[];
+  onSubmit: (data: CreateCampaignForm) => Promise<void>;
+}) {
+  const [formData, setFormData] = useState<CreateCampaignForm>({
+    name: '',
+    segmentId: segments[0]?.id || 0,
+    sequences: [{ subject: '', content: '', delayDays: 0, orderIndex: 0 }]
+  });
+
+  if (!isOpen) return null;
+
+  const addSequence = () => {
+    setFormData(prev => ({
+      ...prev,
+      sequences: [
+        ...prev.sequences,
+        {
+          subject: '',
+          content: '',
+          delayDays: 0,
+          orderIndex: prev.sequences.length
+        }
+      ]
+    }));
+  };
+
+  const removeSequence = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      sequences: prev.sequences.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateSequence = (index: number, field: string, value: string | number) => {
+    setFormData(prev => ({
+      ...prev,
+      sequences: prev.sequences.map((seq, i) => 
+        i === index ? { ...seq, [field]: value } : seq
+      )
+    }));
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-[#2f2f2f] rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-white">Create New Campaign</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white"
+          >
+            <FiX className="w-6 h-6" />
+          </button>
+        </div>
+
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          await onSubmit(formData);
+          onClose();
+        }}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Campaign Name
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full bg-[#393939] text-white rounded-lg px-3 py-2"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Segment
+              </label>
+              <select
+                value={formData.segmentId}
+                onChange={(e) => setFormData(prev => ({ ...prev, segmentId: Number(e.target.value) }))}
+                className="w-full bg-[#393939] text-white rounded-lg px-3 py-2"
+                required
+              >
+                {segments.map(segment => (
+                  <option key={segment.id} value={segment.id}>
+                    {segment.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-medium text-white">Email Sequence</h3>
+                <button
+                  type="button"
+                  onClick={addSequence}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm"
+                >
+                  Add Email
+                </button>
+              </div>
+
+              {formData.sequences.map((sequence, index) => (
+                <div key={index} className="bg-[#393939] rounded-lg p-4 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-medium text-white">Email {index + 1}</h4>
+                    {index > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => removeSequence(index)}
+                        className="text-red-400 hover:text-red-300"
+                      >
+                        <FiTrash2 className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">
+                        Subject
+                      </label>
+                      <input
+                        type="text"
+                        value={sequence.subject}
+                        onChange={(e) => updateSequence(index, 'subject', e.target.value)}
+                        className="w-full bg-[#4a4a4a] text-white rounded-lg px-3 py-2"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">
+                        Content
+                      </label>
+                      <textarea
+                        value={sequence.content}
+                        onChange={(e) => updateSequence(index, 'content', e.target.value)}
+                        className="w-full bg-[#4a4a4a] text-white rounded-lg px-3 py-2 h-32"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">
+                        Delay (days)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={sequence.delayDays}
+                        onChange={(e) => updateSequence(index, 'delayDays', parseInt(e.target.value))}
+                        className="w-full bg-[#4a4a4a] text-white rounded-lg px-3 py-2"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-300 hover:text-white"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+            >
+              Create Campaign
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 }
 
 export default function CampaignsPage() {
@@ -75,6 +279,28 @@ export default function CampaignsPage() {
       setSegments(data);
     } catch (error) {
       console.error('Error fetching segments:', error);
+    }
+  };
+
+  const handleCreateCampaign = async (formData: CreateCampaignForm) => {
+    try {
+      const response = await fetch('/api/campaigns', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create campaign');
+      }
+
+      await fetchCampaigns();
+      setIsCreateModalOpen(false);
+    } catch (error) {
+      console.error('Error creating campaign:', error);
+      // You might want to add error handling UI here
     }
   };
 
@@ -149,7 +375,14 @@ export default function CampaignsPage() {
           )}
         </div>
 
-        {/* Create Campaign Modal will be added here */}
+        {isCreateModalOpen && (
+          <CreateCampaignModal
+            isOpen={isCreateModalOpen}
+            onClose={() => setIsCreateModalOpen(false)}
+            segments={segments}
+            onSubmit={handleCreateCampaign}
+          />
+        )}
       </div>
     </div>
   );
