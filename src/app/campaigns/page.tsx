@@ -41,6 +41,10 @@ interface CreateCampaignForm {
   }[];
 }
 
+interface EditCampaignForm extends CreateCampaignForm {
+  id: number;
+}
+
 function CreateCampaignModal({ 
   isOpen, 
   onClose, 
@@ -234,12 +238,214 @@ function CreateCampaignModal({
   );
 }
 
+function EditCampaignModal({ 
+  isOpen, 
+  onClose, 
+  segments, 
+  campaign,
+  onSubmit 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  segments: Segment[];
+  campaign: Campaign;
+  onSubmit: (data: EditCampaignForm) => Promise<void>;
+}) {
+  const [formData, setFormData] = useState<EditCampaignForm>(() => ({
+    id: campaign.id,
+    name: campaign.name,
+    segmentId: campaign.segmentId,
+    sequences: campaign.sequences.map(seq => ({
+      subject: seq.subject,
+      content: seq.content,
+      delayDays: seq.delayDays,
+      orderIndex: seq.orderIndex
+    }))
+  }));
+
+  if (!isOpen) return null;
+
+  const addSequence = () => {
+    setFormData(prev => ({
+      ...prev,
+      sequences: [
+        ...prev.sequences,
+        {
+          subject: '',
+          content: '',
+          delayDays: 0,
+          orderIndex: prev.sequences.length
+        }
+      ]
+    }));
+  };
+
+  const removeSequence = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      sequences: prev.sequences.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateSequence = (index: number, field: string, value: string | number) => {
+    setFormData(prev => ({
+      ...prev,
+      sequences: prev.sequences.map((seq, i) => 
+        i === index ? { ...seq, [field]: value } : seq
+      )
+    }));
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-[#2f2f2f] rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-white">Edit Campaign</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white"
+          >
+            <FiX className="w-6 h-6" />
+          </button>
+        </div>
+
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          await onSubmit(formData);
+          onClose();
+        }}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Campaign Name
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full bg-[#393939] text-white rounded-lg px-3 py-2"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Segment
+              </label>
+              <select
+                value={formData.segmentId}
+                onChange={(e) => setFormData(prev => ({ ...prev, segmentId: Number(e.target.value) }))}
+                className="w-full bg-[#393939] text-white rounded-lg px-3 py-2"
+                required
+              >
+                {segments.map(segment => (
+                  <option key={segment.id} value={segment.id}>
+                    {segment.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-medium text-white">Email Sequence</h3>
+                <button
+                  type="button"
+                  onClick={addSequence}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm"
+                >
+                  Add Email
+                </button>
+              </div>
+
+              {formData.sequences.map((sequence, index) => (
+                <div key={index} className="bg-[#393939] rounded-lg p-4 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-medium text-white">Email {index + 1}</h4>
+                    {index > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => removeSequence(index)}
+                        className="text-red-400 hover:text-red-300"
+                      >
+                        <FiTrash2 className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">
+                        Subject
+                      </label>
+                      <input
+                        type="text"
+                        value={sequence.subject}
+                        onChange={(e) => updateSequence(index, 'subject', e.target.value)}
+                        className="w-full bg-[#4a4a4a] text-white rounded-lg px-3 py-2"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">
+                        Content
+                      </label>
+                      <textarea
+                        value={sequence.content}
+                        onChange={(e) => updateSequence(index, 'content', e.target.value)}
+                        className="w-full bg-[#4a4a4a] text-white rounded-lg px-3 py-2 h-32"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-1">
+                        Delay (days)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={sequence.delayDays}
+                        onChange={(e) => updateSequence(index, 'delayDays', parseInt(e.target.value))}
+                        className="w-full bg-[#4a4a4a] text-white rounded-lg px-3 py-2"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-300 hover:text-white"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+            >
+              Update Campaign
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function CampaignsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [segments, setSegments] = useState<Segment[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
 
   useEffect(() => {
     fetchUser();
@@ -304,6 +510,49 @@ export default function CampaignsPage() {
     }
   };
 
+  const handleEditCampaign = async (formData: EditCampaignForm) => {
+    try {
+      const response = await fetch(`/api/campaigns/${formData.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update campaign');
+      }
+
+      await fetchCampaigns();
+      setEditingCampaign(null);
+    } catch (error) {
+      console.error('Error updating campaign:', error);
+      // Add error handling UI here
+    }
+  };
+
+  const handleDeleteCampaign = async (campaignId: number) => {
+    if (!window.confirm('Are you sure you want to delete this campaign?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/campaigns/${campaignId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete campaign');
+      }
+
+      await fetchCampaigns();
+    } catch (error) {
+      console.error('Error deleting campaign:', error);
+      // Add error handling UI here
+    }
+  };
+
   return (
     <div className="flex h-screen bg-[#1f1f1f]">
       <Sidebar user={user} />
@@ -337,13 +586,13 @@ export default function CampaignsPage() {
                   </div>
                   <div className="flex space-x-2">
                     <button
-                      onClick={() => {/* Handle edit */}}
+                      onClick={() => setEditingCampaign(campaign)}
                       className="p-2 hover:bg-[#3f3f3f] rounded-lg text-gray-300 hover:text-white"
                     >
                       <FiEdit2 className="w-5 h-5" />
                     </button>
                     <button
-                      onClick={() => {/* Handle delete */}}
+                      onClick={() => handleDeleteCampaign(campaign.id)}
                       className="p-2 hover:bg-red-500/20 rounded-lg text-red-400 hover:text-red-300"
                     >
                       <FiTrash2 className="w-5 h-5" />
@@ -381,6 +630,16 @@ export default function CampaignsPage() {
             onClose={() => setIsCreateModalOpen(false)}
             segments={segments}
             onSubmit={handleCreateCampaign}
+          />
+        )}
+
+        {editingCampaign && (
+          <EditCampaignModal
+            isOpen={true}
+            onClose={() => setEditingCampaign(null)}
+            segments={segments}
+            campaign={editingCampaign}
+            onSubmit={handleEditCampaign}
           />
         )}
       </div>

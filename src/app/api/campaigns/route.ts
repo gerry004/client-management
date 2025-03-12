@@ -17,6 +17,7 @@ export async function GET() {
     });
     return NextResponse.json(campaigns);
   } catch (error) {
+    console.error('Error fetching campaigns:', error);
     return NextResponse.json({ error: 'Failed to fetch campaigns' }, { status: 500 });
   }
 }
@@ -29,9 +30,11 @@ export async function POST(request: Request) {
         name: body.name,
         segmentId: body.segmentId,
         sequences: {
-          create: body.sequences.map((seq: any, index: number) => ({
-            ...seq,
-            orderIndex: index,
+          create: body.sequences.map((seq: any) => ({
+            subject: seq.subject,
+            content: seq.content,
+            delayDays: seq.delayDays,
+            orderIndex: seq.orderIndex,
           })),
         },
       },
@@ -42,6 +45,7 @@ export async function POST(request: Request) {
     });
     return NextResponse.json(campaign);
   } catch (error) {
+    console.error('Error creating campaign:', error);
     return NextResponse.json({ error: 'Failed to create campaign' }, { status: 500 });
   }
 } 
