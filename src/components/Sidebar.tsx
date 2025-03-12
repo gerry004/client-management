@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { FiUsers, FiHome, FiLogOut, FiSettings } from 'react-icons/fi';
+import { FiUsers, FiHome, FiLogOut, FiSettings, FiMail } from 'react-icons/fi';
 import Modal from './Modal';
 
 interface User {
@@ -58,6 +58,17 @@ export default function Sidebar({ user }: SidebarProps) {
           >
             <FiUsers className="w-5 h-5" />
             <span>Leads</span>
+          </Link>
+          <Link 
+            href="/campaigns" 
+            className={`flex items-center space-x-2 p-2 rounded-lg ${
+              pathname === '/campaigns'
+                ? 'bg-[#2f2f2f] text-white'
+                : 'text-gray-300 hover:bg-[#2f2f2f] hover:text-white'
+            }`}
+          >
+            <FiMail className="w-5 h-5" />
+            <span>Campaigns</span>
           </Link>
         </nav>
 
