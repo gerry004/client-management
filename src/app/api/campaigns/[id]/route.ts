@@ -55,18 +55,34 @@ export async function PUT(
       }
     }
 
-    // Delete any extra sequences if the new list is shorter
+    // When deleting sequences, we need to handle the email tracking records first
     if (existingSequences.length > data.sequences.length) {
       const keepIds = existingSequences
         .slice(0, data.sequences.length)
         .map(seq => seq.id);
       
-      await prisma.emailSequence.deleteMany({
-        where: {
-          campaignId,
-          id: { notIn: keepIds },
-        },
-      });
+      const sequencesToDelete = existingSequences
+        .filter(seq => !keepIds.includes(seq.id))
+        .map(seq => seq.id);
+      
+      // First delete the email tracking records for these sequences
+      if (sequencesToDelete.length > 0) {
+        await prisma.emailTracking.deleteMany({
+          where: {
+            sequenceId: {
+              in: sequencesToDelete
+            }
+          }
+        });
+        
+        // Then delete the sequences
+        await prisma.emailSequence.deleteMany({
+          where: {
+            campaignId,
+            id: { in: sequencesToDelete },
+          },
+        });
+      }
     }
 
     // Fetch the updated campaign with all its relations
@@ -97,14 +113,21 @@ export async function DELETE(
   try {
     const campaignId = parseInt(params.id);
 
-    // First, delete related email tracking records
-    await prisma.emailTracking.deleteMany({
-      where: {
-        sequence: {
-          campaignId: campaignId
-        }
-      }
+    // Get all sequences for this campaign
+    const sequences = await prisma.emailSequence.findMany({
+      where: { campaignId }
     });
+
+    // Delete email tracking records for all sequences in this campaign
+    if (sequences.length > 0) {
+      await prisma.emailTracking.deleteMany({
+        where: {
+          sequenceId: {
+            in: sequences.map(seq => seq.id)
+          }
+        }
+      });
+    }
 
     // Then delete associated sequences
     await prisma.emailSequence.deleteMany({
