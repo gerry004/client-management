@@ -12,10 +12,24 @@ const oauth2Client = new google.auth.OAuth2(
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
+    const error = searchParams.get('error');
+    
+    if (error) {
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/settings?gmail_error=${error}`
+      );
+    }
+
     const code = searchParams.get('code');
+    if (!code) {
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/settings?gmail_error=No_authorization_code`
+      );
+    }
+
     const stateParam = searchParams.get('state');
     
-    if (!code || !stateParam) {
+    if (!stateParam) {
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_APP_URL}/settings?gmail_error=${encodeURIComponent('Missing parameters')}`
       );
@@ -55,17 +69,20 @@ export async function GET(request: NextRequest) {
         }
       });
       
-      // Redirect with the token from state
+      // Create response with redirect
       const response = NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_APP_URL}/settings?gmail_success=true`
       );
+
+      // Set the cookie if token exists
       if (token) {
         response.cookies.set('token', token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax' // Changed from 'strict' to help with redirect
+          sameSite: 'lax'
         });
       }
+      
       return response;
     } catch (error) {
       console.error('Error in Gmail token exchange:', error);
@@ -73,19 +90,22 @@ export async function GET(request: NextRequest) {
       const response = NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_APP_URL}/settings?gmail_error=${encodeURIComponent('Failed to authenticate with Gmail')}`
       );
+      
       // Preserve the auth token
       if (token) {
         response.cookies.set('token', token);
       }
+      
       return response;
     }
   } catch (error) {
-    console.error('Error in Gmail callback:', error);
-    
-    const response = NextResponse.redirect(
+    console.error('Gmail callback error:', error);
+    return NextResponse.redirect(
       `${process.env.NEXT_PUBLIC_APP_URL}/settings?gmail_error=${encodeURIComponent('Authentication failed')}`
     );
-
-    return response;
   }
-} 
+}
+
+// Add segment config to handle dynamic params
+export const runtime = 'edge';
+export const preferredRegion = 'auto'; 
