@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 import LeadModal from '@/components/LeadModal';
 import SegmentModal from '@/components/SegmentModal';
+import EmailEditorModal from '@/components/EmailEditorModal';
+import { FiMail, FiEdit2, FiTrash2 } from 'react-icons/fi';
 
 interface User {
   name: string;
@@ -32,6 +34,8 @@ export default function LeadsPage() {
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
   const [isSegmentModalOpen, setIsSegmentModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   useEffect(() => {
     fetchUser();
@@ -186,21 +190,33 @@ export default function LeadsPage() {
                   <td className="px-6 py-4 text-sm text-white">{lead.email || '-'}</td>
                   <td className="px-6 py-4 text-sm text-white">{lead.phone || '-'}</td>
                   <td className="px-6 py-4 text-sm text-white">{lead.segment?.name || '-'}</td>
-                  <td className="px-6 py-4 text-sm text-white space-x-2">
+                  <td className="px-6 py-4 text-sm text-white space-x-3">
+                    <button
+                      onClick={() => {
+                        setSelectedLead(lead);
+                        setIsEmailModalOpen(true);
+                      }}
+                      className="text-blue-400 hover:text-blue-300 p-1 rounded hover:bg-gray-700"
+                      title="Send Email"
+                    >
+                      <FiMail size={18} />
+                    </button>
                     <button
                       onClick={() => {
                         setEditingLead(lead);
                         setIsLeadModalOpen(true);
                       }}
-                      className="text-blue-400 hover:text-blue-300"
+                      className="text-green-400 hover:text-green-300 p-1 rounded hover:bg-gray-700"
+                      title="Edit Lead"
                     >
-                      Edit
+                      <FiEdit2 size={18} />
                     </button>
                     <button
                       onClick={() => handleDeleteLead(lead.id)}
-                      className="text-red-400 hover:text-red-300"
+                      className="text-red-400 hover:text-red-300 p-1 rounded hover:bg-gray-700"
+                      title="Delete Lead"
                     >
-                      Delete
+                      <FiTrash2 size={18} />
                     </button>
                   </td>
                 </tr>
@@ -224,6 +240,16 @@ export default function LeadsPage() {
           isOpen={isSegmentModalOpen}
           onClose={() => setIsSegmentModalOpen(false)}
           onSubmit={handleAddSegment}
+        />
+
+        <EmailEditorModal
+          isOpen={isEmailModalOpen}
+          onClose={() => {
+            setIsEmailModalOpen(false);
+            setSelectedLead(null);
+          }}
+          recipientEmail={selectedLead?.email || ''}
+          recipientName={selectedLead?.name || ''}
         />
       </div>
     </div>

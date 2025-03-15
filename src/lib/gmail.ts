@@ -1,8 +1,14 @@
 import { google } from 'googleapis';
 import { prisma } from './prisma';
+import { OAuth2Client } from 'google-auth-library';
+
+const SCOPES = [
+  'https://www.googleapis.com/auth/gmail.readonly',
+  'https://www.googleapis.com/auth/gmail.send',
+];
 
 // Create OAuth2 client
-const oauth2Client = new google.auth.OAuth2(
+const oauth2Client = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
   process.env.GOOGLE_REDIRECT_URI
@@ -52,4 +58,9 @@ export async function getGmailClient(userId: number) {
 
   // Create and return Gmail client
   return google.gmail({ version: 'v1', auth: oauth2Client });
-} 
+}
+
+// Make sure you have these environment variables in your .env file:
+// GOOGLE_CLIENT_ID=your_client_id
+// GOOGLE_CLIENT_SECRET=your_client_secret
+// GOOGLE_REDIRECT_URI=your_redirect_uri 
