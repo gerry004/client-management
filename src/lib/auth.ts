@@ -1,9 +1,13 @@
 import { jwtVerify } from 'jose';
 import { prisma } from './prisma';
+import { cookies } from 'next/headers';
 
-export async function getUserFromRequest(request: Request) {
+export async function getUserFromRequest() {
   try {
-    const token = request.cookies.get('token')?.value;
+    // Use Next.js cookies() function instead of accessing request directly
+    const cookieStore = cookies();
+    const token = cookieStore.get('token')?.value;
+    
     if (!token) return null;
 
     const secret = new TextEncoder().encode(
