@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { getUserFromRequest } from '@/lib/auth';
 
 export async function GET(request: Request) {
+  // Get cookies explicitly - this automatically makes the route dynamic
+  const cookieStore = cookies();
+  
   try {
     const user = await getUserFromRequest();
     

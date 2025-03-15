@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { getUserFromRequest } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export async function GET() {
+  // Get cookies explicitly - this automatically makes the route dynamic
+  const cookieStore = cookies();
+  
   try {
     const user = await getUserFromRequest();
     
