@@ -85,10 +85,7 @@ export async function GET(request: NextRequest) {
     const response = NextResponse.redirect(
       `${process.env.NEXT_PUBLIC_APP_URL}/settings?gmail_error=${encodeURIComponent('Authentication failed')}`
     );
-    // Preserve the auth token
-    if (token) {
-      response.cookies.set('token', token);
-    }
+
     return response;
   }
 } 
