@@ -60,6 +60,32 @@ export async function getGmailClient(userId: number) {
   return google.gmail({ version: 'v1', auth: oauth2Client });
 }
 
+interface EmailParams {
+  to: string;
+  subject: string;
+  content: string;
+}
+
+export async function sendEmail({ to, subject, content }: EmailParams) {
+  const response = await fetch('/api/gmail/send', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      to,
+      subject,
+      content,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to send email');
+  }
+
+  return response.json();
+}
+
 // Make sure you have these environment variables in your .env file:
 // GOOGLE_CLIENT_ID=your_client_id
 // GOOGLE_CLIENT_SECRET=your_client_secret

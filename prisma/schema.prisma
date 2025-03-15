@@ -91,3 +91,15 @@ model EmailTracking {
   updatedAt     DateTime  @updatedAt @map("updated_at")
   @@map("email_tracking")
 }
+
+model EmailLog {
+  id             String   @id @default(cuid())
+  recipientEmail String
+  subject        String
+  content        String   @db.Text
+  status         String   // SENT, FAILED
+  type           String   // BULK, CAMPAIGN, INDIVIDUAL
+  error          String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
