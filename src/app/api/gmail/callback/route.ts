@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     
     if (!code || !stateParam) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/leads?gmail_error=${encodeURIComponent('Missing code or state parameter')}`
+        `${process.env.NEXT_PUBLIC_APP_URL}/settings?gmail_error=${encodeURIComponent('Missing parameters')}`
       );
     }
     
@@ -29,11 +29,11 @@ export async function GET(request: NextRequest) {
     } catch (e) {
       console.error('Failed to decode state parameter:', e);
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/leads?gmail_error=${encodeURIComponent('Invalid state parameter')}`
+        `${process.env.NEXT_PUBLIC_APP_URL}/settings?gmail_error=${encodeURIComponent('Invalid state')}`
       );
     }
     
-    const { userId } = stateObj;
+    const { userId, token } = stateObj;
     
     try {
       // Exchange code for tokens
@@ -55,22 +55,40 @@ export async function GET(request: NextRequest) {
         }
       });
       
-      // Redirect back to leads page with success
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/leads?gmail_success=true`
+      // Redirect with the token from state
+      const response = NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/settings?gmail_success=true`
       );
+      if (token) {
+        response.cookies.set('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax' // Changed from 'strict' to help with redirect
+        });
+      }
+      return response;
     } catch (error) {
       console.error('Error in Gmail token exchange:', error);
       
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/leads?gmail_error=${encodeURIComponent('Failed to authenticate with Gmail')}`
+      const response = NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/settings?gmail_error=${encodeURIComponent('Failed to authenticate with Gmail')}`
       );
+      // Preserve the auth token
+      if (token) {
+        response.cookies.set('token', token);
+      }
+      return response;
     }
   } catch (error) {
     console.error('Error in Gmail callback:', error);
     
-    return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/leads?gmail_error=${encodeURIComponent('Authentication failed')}`
+    const response = NextResponse.redirect(
+      `${process.env.NEXT_PUBLIC_APP_URL}/settings?gmail_error=${encodeURIComponent('Authentication failed')}`
     );
+    // Preserve the auth token
+    if (token) {
+      response.cookies.set('token', token);
+    }
+    return response;
   }
 } 

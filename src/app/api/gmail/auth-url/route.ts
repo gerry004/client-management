@@ -17,14 +17,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const token = request.cookies.get('token')?.value;
+    if (!token) {
+      return NextResponse.json({ error: 'No auth token' }, { status: 401 });
+    }
+
     // Get the referer or current path to return to after auth
     const referer = request.headers.get('referer') || '/dashboard';
     const returnPath = new URL(referer).pathname;
     
-    // Create state parameter with user ID and return path
+    // Create state parameter with user ID, return path, and token
     const stateObj = {
       userId: user.id.toString(),
-      returnPath
+      returnPath: '/settings',
+      token: token // Add token to state
     };
     const stateParam = Buffer.from(JSON.stringify(stateObj)).toString('base64');
 

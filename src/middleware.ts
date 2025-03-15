@@ -8,10 +8,13 @@ export async function middleware(request: NextRequest) {
   if (
     pathname === '/' ||
     pathname === '/signup' ||
-    pathname.startsWith('/api/auth/')
+    pathname.startsWith('/api/auth/') ||
+    pathname === '/api/gmail/callback'
   ) {
     return NextResponse.next();
   }
+
+  console.log('pathname', pathname);
 
   const token = request.cookies.get('token')?.value;
 
