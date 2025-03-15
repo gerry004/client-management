@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Sidebar from '@/components/Sidebar';
 import LeadModal from '@/components/LeadModal';
 import SegmentModal from '@/components/SegmentModal';
 import EmailEditorModal from '@/components/EmailEditorModal';
-import { FiMail, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { FiMail, FiEdit2, FiTrash2, FiClock } from 'react-icons/fi';
+import { useRouter } from 'next/navigation';
 
 interface User {
   name: string;
@@ -36,6 +37,8 @@ export default function LeadsPage() {
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const router = useRouter();
 
   useEffect(() => {
     fetchUser();
@@ -75,6 +78,32 @@ export default function LeadsPage() {
       console.error('Error fetching segments:', err);
     }
   };
+
+  const fetchUnreadCounts = useCallback(async () => {
+    try {
+      const emails = leads
+        .map(lead => lead.email)
+        .filter((email): email is string => Boolean(email));
+
+      if (emails.length === 0) return;
+
+      const response = await fetch('/api/email/unread', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emails }),
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch unread counts');
+      const data = await response.json();
+      setUnreadCounts(data);
+    } catch (err) {
+      console.error('Error fetching unread counts:', err);
+    }
+  }, [leads]);
+
+  useEffect(() => {
+    fetchUnreadCounts();
+  }, [fetchUnreadCounts]);
 
   const handleAddLead = async (data: Omit<Lead, 'id'>) => {
     try {
@@ -148,6 +177,14 @@ export default function LeadsPage() {
     }
   };
 
+  const handleViewEmailHistory = (lead: Lead) => {
+    if (!lead.email) {
+      alert('This lead has no email address');
+      return;
+    }
+    router.push(`/email-history/${encodeURIComponent(lead.email)}`);
+  };
+
   return (
     <div className="flex h-screen bg-[#1f1f1f]">
       <Sidebar user={user} />
@@ -190,34 +227,48 @@ export default function LeadsPage() {
                   <td className="px-6 py-4 text-sm text-white">{lead.email || '-'}</td>
                   <td className="px-6 py-4 text-sm text-white">{lead.phone || '-'}</td>
                   <td className="px-6 py-4 text-sm text-white">{lead.segment?.name || '-'}</td>
-                  <td className="px-6 py-4 text-sm text-white space-x-3">
-                    <button
-                      onClick={() => {
-                        setSelectedLead(lead);
-                        setIsEmailModalOpen(true);
-                      }}
-                      className="text-blue-400 hover:text-blue-300 p-1 rounded hover:bg-gray-700"
-                      title="Send Email"
-                    >
-                      <FiMail size={18} />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setEditingLead(lead);
-                        setIsLeadModalOpen(true);
-                      }}
-                      className="text-green-400 hover:text-green-300 p-1 rounded hover:bg-gray-700"
-                      title="Edit Lead"
-                    >
-                      <FiEdit2 size={18} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteLead(lead.id)}
-                      className="text-red-400 hover:text-red-300 p-1 rounded hover:bg-gray-700"
-                      title="Delete Lead"
-                    >
-                      <FiTrash2 size={18} />
-                    </button>
+                  <td className="px-6 py-4 text-sm text-white space-x-3 flex items-center">
+                    <div className="flex space-x-3">
+                      <button
+                        onClick={() => {
+                          setSelectedLead(lead);
+                          setIsEmailModalOpen(true);
+                        }}
+                        className="text-blue-400 hover:text-blue-300 p-1 rounded hover:bg-gray-700"
+                        title="Send Email"
+                      >
+                        <FiMail size={18} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingLead(lead);
+                          setIsLeadModalOpen(true);
+                        }}
+                        className="text-green-400 hover:text-green-300 p-1 rounded hover:bg-gray-700"
+                        title="Edit Lead"
+                      >
+                        <FiEdit2 size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteLead(lead.id)}
+                        className="text-red-400 hover:text-red-300 p-1 rounded hover:bg-gray-700"
+                        title="Delete Lead"
+                      >
+                        <FiTrash2 size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleViewEmailHistory(lead)}
+                        className="text-purple-400 hover:text-purple-300 p-1 rounded hover:bg-gray-700"
+                        title="View Email History"
+                      >
+                        <FiClock size={18} />
+                      </button>
+                    </div>
+                    {lead.email && unreadCounts[lead.email] > 0 && (
+                      <span className="ml-2 px-2 py-1 text-xs bg-blue-500 text-white rounded-full">
+                        {unreadCounts[lead.email]}
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}
