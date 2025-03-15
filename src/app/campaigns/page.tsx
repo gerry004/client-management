@@ -23,6 +23,7 @@ interface Campaign {
   segmentId: number;
   segment: Segment;
   sequences: EmailSequence[];
+  createdAt: Date | string;
 }
 
 interface User {
