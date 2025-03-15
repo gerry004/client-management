@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { useParams } from 'next/navigation';
 
@@ -64,6 +64,12 @@ export default function EmailHistoryPage() {
     }
   };
 
+  const sortedEmailThreads = useMemo(() => {
+    return emailThreads.sort((a, b) => {
+      return new Date(b.lastMessageDate).getTime() - new Date(a.lastMessageDate).getTime();
+    });
+  }, [emailThreads]);
+
   return (
     <div className="flex h-screen bg-[#1f1f1f]">
       <Sidebar user={user} />
@@ -82,7 +88,7 @@ export default function EmailHistoryPage() {
         )}
 
         <div className="space-y-4">
-          {emailThreads.map((thread) => (
+          {sortedEmailThreads.map((thread) => (
             <div key={thread.id} className="bg-[#2d2d2d] rounded-lg p-4">
               <div className="mb-2">
                 <h3 className="text-lg font-medium text-white">{thread.subject}</h3>

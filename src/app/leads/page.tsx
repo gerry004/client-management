@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Sidebar from '@/components/Sidebar';
 import LeadModal from '@/components/LeadModal';
 import SegmentModal from '@/components/SegmentModal';
@@ -39,6 +39,12 @@ export default function LeadsPage() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const router = useRouter();
+
+  const memoizedUnreadCounts = useMemo(() => {
+    return leads
+      .map(lead => lead.email)
+      .filter((email): email is string => Boolean(email));
+  }, [leads]);
 
   useEffect(() => {
     fetchUser();
@@ -81,16 +87,12 @@ export default function LeadsPage() {
 
   const fetchUnreadCounts = useCallback(async () => {
     try {
-      const emails = leads
-        .map(lead => lead.email)
-        .filter((email): email is string => Boolean(email));
-
-      if (emails.length === 0) return;
+      if (memoizedUnreadCounts.length === 0) return;
 
       const response = await fetch('/api/email/unread', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ emails }),
+        body: JSON.stringify({ emails: memoizedUnreadCounts }),
       });
 
       if (!response.ok) throw new Error('Failed to fetch unread counts');
@@ -99,7 +101,7 @@ export default function LeadsPage() {
     } catch (err) {
       console.error('Error fetching unread counts:', err);
     }
-  }, [leads]);
+  }, [memoizedUnreadCounts]);
 
   useEffect(() => {
     fetchUnreadCounts();

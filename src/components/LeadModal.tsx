@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Modal from './Modal';
 
 interface Segment {
@@ -57,6 +57,10 @@ export default function LeadModal({ isOpen, onClose, onSubmit, initialData, segm
     onClose();
   };
 
+  const sortedSegments = useMemo(() => {
+    return segments.sort((a, b) => a.name.localeCompare(b.name));
+  }, [segments]);
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={initialData ? "Edit Lead" : "Add Lead"}>
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -105,7 +109,7 @@ export default function LeadModal({ isOpen, onClose, onSubmit, initialData, segm
             className="mt-1 block w-full rounded-md bg-[#2d2d2d] border-gray-600 text-white"
           >
             <option value="">Select a segment</option>
-            {segments.map((segment) => (
+            {sortedSegments.map((segment) => (
               <option key={segment.id} value={segment.id}>
                 {segment.name}
               </option>

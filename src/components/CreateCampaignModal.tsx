@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Modal from './Modal';
 
 interface Segment {
@@ -38,6 +38,18 @@ export default function CreateCampaignModal({
   const addSequence = () => {
     setSequences([...sequences, { subject: '', content: '', delayDays: 0 }]);
   };
+
+  const isFormValid = useMemo(() => {
+    return (
+      name.trim() !== '' &&
+      segmentId !== '' &&
+      sequences.every(seq => 
+        seq.subject.trim() !== '' && 
+        seq.content.trim() !== '' && 
+        seq.delayDays >= 0
+      )
+    );
+  }, [name, segmentId, sequences]);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Create New Campaign">
@@ -152,7 +164,10 @@ export default function CreateCampaignModal({
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
+            disabled={!isFormValid}
+            className={`px-4 py-2 bg-blue-500 text-white rounded-lg ${
+              isFormValid ? 'hover:bg-blue-600' : 'opacity-50 cursor-not-allowed'
+            }`}
           >
             Create Campaign
           </button>

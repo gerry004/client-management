@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { FiPlus, FiEdit2, FiTrash2, FiX } from 'react-icons/fi';
 import Sidebar from '@/components/Sidebar';
 
@@ -553,6 +553,12 @@ export default function CampaignsPage() {
     }
   };
 
+  const sortedCampaigns = useMemo(() => {
+    return campaigns.sort((a, b) => {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }, [campaigns]);
+
   return (
     <div className="flex h-screen bg-[#1f1f1f]">
       <Sidebar user={user} />
@@ -574,7 +580,7 @@ export default function CampaignsPage() {
           ) : campaigns.length === 0 ? (
             <div className="text-center text-gray-400">No campaigns found</div>
           ) : (
-            campaigns.map((campaign) => (
+            sortedCampaigns.map((campaign) => (
               <div
                 key={campaign.id}
                 className="bg-[#2f2f2f] rounded-lg p-4 space-y-4"
