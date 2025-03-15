@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { google } from 'googleapis';
 import { prisma } from '@/lib/prisma';
 
@@ -10,6 +11,7 @@ const oauth2Client = new google.auth.OAuth2(
 );
 
 export async function GET(request: NextRequest) {
+  const cookieStore = cookies();
   try {
     const searchParams = request.nextUrl.searchParams;
     const error = searchParams.get('error');
@@ -69,14 +71,13 @@ export async function GET(request: NextRequest) {
         }
       });
       
-      // Create response with redirect
       const response = NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_APP_URL}/settings?gmail_success=true`
       );
 
       // Set the cookie if token exists
       if (token) {
-        response.cookies.set('token', token, {
+        cookieStore.set('token', token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax'
@@ -93,7 +94,11 @@ export async function GET(request: NextRequest) {
       
       // Preserve the auth token
       if (token) {
-        response.cookies.set('token', token);
+        cookieStore.set('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax'
+        });
       }
       
       return response;
@@ -104,8 +109,4 @@ export async function GET(request: NextRequest) {
       `${process.env.NEXT_PUBLIC_APP_URL}/settings?gmail_error=${encodeURIComponent('Authentication failed')}`
     );
   }
-}
-
-// Add segment config to handle dynamic params
-export const runtime = 'edge';
-export const preferredRegion = 'auto'; 
+} 
