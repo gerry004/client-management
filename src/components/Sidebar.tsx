@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { FiUsers, FiHome, FiLogOut, FiSettings, FiMail } from 'react-icons/fi';
-import Modal from './Modal';
+import SettingsModal from './SettingsModal';
 
 interface User {
   name: string;
@@ -101,15 +101,10 @@ export default function Sidebar({ user }: SidebarProps) {
         </div>
       </div>
 
-      <Modal
+      <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-        title="Settings"
-      >
-        <div className="text-gray-300">
-          <p>Settings coming soon...</p>
-        </div>
-      </Modal>
+      />
     </>
   );
 } 

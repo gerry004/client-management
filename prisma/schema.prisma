@@ -13,7 +13,20 @@ model User {
   email     String   @unique @map("email")
   password  String   @map("password")
   createdAt DateTime @default(now()) @map("created_at")
+  settings  UserSettings?
   @@map("users")
+}
+
+model UserSettings {
+  id                Int       @id @default(autoincrement())
+  userId            Int       @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gmailAccessToken  String?
+  gmailRefreshToken String?
+  gmailTokenExpiry  DateTime?
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  @@map("user_settings")
 }
 
 model Segment {
