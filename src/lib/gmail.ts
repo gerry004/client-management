@@ -24,12 +24,53 @@ export async function getGmailClient(userId: number) {
     throw new Error('Gmail not connected');
   }
 
-  // Set credentials
-  oauth2Client.setCredentials({
-    access_token: settings.gmailAccessToken,
-    refresh_token: settings.gmailRefreshToken || undefined,
-    expiry_date: settings.gmailTokenExpiry?.getTime() || undefined
-  });
+  // Check if token is expired or about to expire (within 5 minutes)
+  const isExpired = settings.gmailTokenExpiry && 
+    new Date(settings.gmailTokenExpiry).getTime() - 5 * 60 * 1000 < Date.now();
+
+  if (isExpired && settings.gmailRefreshToken) {    
+    try {
+      // Set credentials with refresh token
+      oauth2Client.setCredentials({
+        refresh_token: settings.gmailRefreshToken
+      });
+      
+      // Force token refresh
+      const { credentials } = await oauth2Client.refreshAccessToken();
+      
+      // Update database with new tokens
+      await prisma.userSettings.update({
+        where: { userId },
+        data: {
+          gmailAccessToken: credentials.access_token,
+          gmailRefreshToken: credentials.refresh_token || settings.gmailRefreshToken,
+          gmailTokenExpiry: credentials.expiry_date ? new Date(credentials.expiry_date) : null
+        }
+      });
+      
+      // Set the refreshed credentials
+      oauth2Client.setCredentials({
+        access_token: credentials.access_token,
+        refresh_token: credentials.refresh_token || settings.gmailRefreshToken,
+        expiry_date: credentials.expiry_date
+      });
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      // Continue with existing token, the request might still work
+      oauth2Client.setCredentials({
+        access_token: settings.gmailAccessToken,
+        refresh_token: settings.gmailRefreshToken,
+        expiry_date: settings.gmailTokenExpiry?.getTime()
+      });
+    }
+  } else {
+    // Set credentials with existing token
+    oauth2Client.setCredentials({
+      access_token: settings.gmailAccessToken,
+      refresh_token: settings.gmailRefreshToken || undefined,
+      expiry_date: settings.gmailTokenExpiry?.getTime() || undefined
+    });
+  }
 
   // Handle token refresh if needed
   oauth2Client.on('tokens', async (tokens) => {
@@ -85,8 +126,3 @@ export async function sendEmail({ to, subject, content }: EmailParams) {
 
   return response.json();
 }
-
-// Make sure you have these environment variables in your .env file:
-// GOOGLE_CLIENT_ID=your_client_id
-// GOOGLE_CLIENT_SECRET=your_client_secret
-// GOOGLE_REDIRECT_URI=your_redirect_uri 

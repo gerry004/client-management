@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { google } from 'googleapis';
+import { getGmailClient } from '@/lib/gmail';
 import { prisma } from '@/lib/prisma';
 import { getUserFromRequest } from '@/lib/auth';
 
@@ -10,27 +10,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userSettings = await prisma.userSettings.findUnique({
-      where: { userId: user.id }
-    });
-
-    if (!userSettings?.gmailAccessToken) {
-      return NextResponse.json({ error: 'Gmail not connected' }, { status: 400 });
-    }
-
     const { emails } = await request.json();
     if (!Array.isArray(emails)) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
     }
 
-    const oauth2Client = new google.auth.OAuth2();
-    oauth2Client.setCredentials({
-      access_token: userSettings.gmailAccessToken,
-      refresh_token: userSettings.gmailRefreshToken,
-      expiry_date: userSettings.gmailTokenExpiry?.getTime()
-    });
-
-    const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+    // Use the centralized Gmail client that handles token refresh
+    const gmail = await getGmailClient(user.id);
     
     const unreadCounts = await Promise.all(
       emails.map(async (email) => {
