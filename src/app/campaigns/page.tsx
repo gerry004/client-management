@@ -589,7 +589,7 @@ export default function CampaignsPage() {
                 <div className="flex justify-between items-start">
                   <div>
                     <h2 className="text-xl font-semibold text-white">{campaign.name}</h2>
-                    <p className="text-gray-400">Segment: {campaign.segment.name}</p>
+                    <p className="text-gray-400">Segment: {campaign.segment?.name}</p>
                   </div>
                   <div className="flex space-x-2">
                     <button

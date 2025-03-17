@@ -179,6 +179,33 @@ export default function LeadsPage() {
     }
   };
 
+  const handleUpdateSegment = async (id: number, name: string) => {
+    try {
+      const response = await fetch(`/api/segments/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      if (!response.ok) throw new Error('Failed to update segment');
+      fetchSegments();
+    } catch (err) {
+      console.error('Error updating segment:', err);
+    }
+  };
+
+  const handleDeleteSegment = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this segment? This may affect leads assigned to this segment.')) return;
+    try {
+      const response = await fetch(`/api/segments/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete segment');
+      fetchSegments();
+    } catch (err) {
+      console.error('Error deleting segment:', err);
+    }
+  };
+
   const handleViewEmailHistory = (lead: Lead) => {
     if (!lead.email) {
       alert('This lead has no email address');
@@ -198,7 +225,7 @@ export default function LeadsPage() {
               onClick={() => setIsSegmentModalOpen(true)}
               className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
             >
-              Add Segment
+              Manage Segments
             </button>
             <button
               onClick={() => setIsLeadModalOpen(true)}
@@ -293,6 +320,9 @@ export default function LeadsPage() {
           isOpen={isSegmentModalOpen}
           onClose={() => setIsSegmentModalOpen(false)}
           onSubmit={handleAddSegment}
+          onUpdate={handleUpdateSegment}
+          onDelete={handleDeleteSegment}
+          segments={segments}
         />
 
         <EmailEditorModal

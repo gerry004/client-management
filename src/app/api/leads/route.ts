@@ -33,6 +33,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const user = await getUserFromRequest();
+    if (!user) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
     const data = await request.json();
     const lead = await prisma.lead.create({
       data

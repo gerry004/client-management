@@ -49,8 +49,31 @@ export async function DELETE(
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    await prisma.lead.delete({
+    // Get the lead first to access its email
+    const lead = await prisma.lead.findUnique({
       where: { id: parseInt(params.id) }
+    });
+
+    if (!lead) {
+      return NextResponse.json(
+        { error: 'Lead not found' },
+        { status: 404 }
+      );
+    }
+
+    // Use a transaction to ensure all operations succeed or fail together
+    await prisma.$transaction(async (tx) => {
+      // Delete EmailLog entries for this lead if it has an email
+      if (lead.email) {
+        await tx.emailLog.deleteMany({
+          where: { recipientEmail: lead.email }
+        });
+      }
+
+      // Delete the lead (will cascade delete EmailTracking records)
+      await tx.lead.delete({
+        where: { id: parseInt(params.id) }
+      });
     });
 
     return new NextResponse(null, { status: 204 });
