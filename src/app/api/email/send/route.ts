@@ -35,8 +35,11 @@ export async function POST(request: Request) {
     // Generate a tracking ID
     const trackingId = uuidv4();
     
-    // Add tracking pixel to the content
-    const trackingPixel = `<img src="${process.env.NEXT_PUBLIC_APP_URL}/api/email/track/${trackingId}" width="1" height="1" />`;
+    // Generate a random value for cache busting
+    const randomValue = Math.random().toString(36).substring(2, 15);
+    
+    // Add tracking pixel to the content with cache-busting parameter
+    const trackingPixel = `<img src="${process.env.NEXT_PUBLIC_APP_URL}/api/email/track/${trackingId}?r=${randomValue}" width="1" height="1" alt="" style="display:none" />`;
     const trackedContent = content + trackingPixel;
 
     // Create the email message

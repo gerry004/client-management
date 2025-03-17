@@ -19,7 +19,11 @@ export async function GET(request: Request) {
 
     // Generate tracking ID
     const trackingId = uuidv4();
-    const trackingPixel = `<img src="${process.env.NEXT_PUBLIC_APP_URL}/api/email/track/${trackingId}" width="1" height="1" />`;
+    
+    // Generate a random value for cache busting
+    const randomValue = Math.random().toString(36).substring(2, 15);
+    
+    const trackingPixel = `<img src="${process.env.NEXT_PUBLIC_APP_URL}/api/email/track/${trackingId}?r=${randomValue}" width="1" height="1" alt="" style="display:none" />`;
     
     // Create test email content
     const subject = "Test Email Tracking";

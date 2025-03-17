@@ -37,12 +37,18 @@ export async function GET(
       'base64'
     );
 
+    // Generate a random value for cache busting
+    const randomValue = Math.random().toString(36).substring(2, 15);
+
     return new NextResponse(pixel, {
       headers: {
         'Content-Type': 'image/gif',
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
         'Pragma': 'no-cache',
         'Expires': '0',
+        'ETag': `"${randomValue}"`,
+        'Vary': '*',
+        'Access-Control-Allow-Origin': '*',
       },
     });
   } catch (error) {
