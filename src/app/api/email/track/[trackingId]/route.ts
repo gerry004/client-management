@@ -6,6 +6,7 @@ export async function GET(
   { params }: { params: { trackingId: string } }
 ) {
   try {
+    console.log('TRACKING PIXEL LOADED');
     const { trackingId } = params;
     
     if (!trackingId) {
