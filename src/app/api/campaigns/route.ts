@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
+import { getUserFromRequest } from '@/lib/auth';
 
-const prisma = new PrismaClient();
-
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const user = await getUserFromRequest();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
     const campaigns = await prisma.emailCampaign.findMany({
       include: {
         segment: true,
@@ -24,6 +28,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const user = await getUserFromRequest();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
     const body = await request.json();
     const campaign = await prisma.emailCampaign.create({
       data: {

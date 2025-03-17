@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   try {
     const user = await getUserFromRequest();
     if (!user) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const segments = await prisma.segment.findMany({
@@ -25,8 +25,12 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const user = await getUserFromRequest();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
     const { name } = await request.json();
-    console.log(name)
     const segment = await prisma.segment.create({
       data: { name }
     });

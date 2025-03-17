@@ -1,13 +1,17 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
+import { getUserFromRequest } from '@/lib/auth';
 
 export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
+    const user = await getUserFromRequest();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
     const campaignId = parseInt(params.id);
     const data = await request.json();
 
@@ -111,6 +115,11 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const user = await getUserFromRequest();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
     const campaignId = parseInt(params.id);
 
     // Get all sequences for this campaign
