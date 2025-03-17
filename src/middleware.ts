@@ -14,8 +14,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  console.log('pathname', pathname);
-
   const token = request.cookies.get('token')?.value;
 
   if (!token) {
