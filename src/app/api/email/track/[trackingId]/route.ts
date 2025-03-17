@@ -42,6 +42,7 @@ export async function GET(
     const randomValue = Math.random().toString(36).substring(2, 15);
 
     return new NextResponse(pixel, {
+      status: 200,
       headers: {
         'Content-Type': 'image/gif',
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',

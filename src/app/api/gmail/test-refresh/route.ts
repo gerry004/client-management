@@ -18,8 +18,6 @@ export async function GET() {
       }
     });
 
-    console.log('Token expiry set to past time');
-
     // This should trigger a refresh
     const gmail = await getGmailClient(user.id);
     

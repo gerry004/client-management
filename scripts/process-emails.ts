@@ -62,6 +62,8 @@ async function processEmails() {
               sentAt: new Date(),
             }
           });
+          
+          console.log(`Sent email to ${lead.email} for campaign ${campaign.name}`);
         }
       }
     }
@@ -77,7 +79,6 @@ async function findNextSequenceToSend(leadId: number, sequences: any[]): Promise
   if (!sequences.length) return { nextSequence: null, canSendNow: false };
   
   const campaignId = sequences[0].campaignId;
-  console.log("campaignId", campaignId);
   
   // Get all tracking records for this lead
   const sentEmails = await prisma.emailTracking.findMany({
@@ -85,8 +86,6 @@ async function findNextSequenceToSend(leadId: number, sequences: any[]): Promise
     orderBy: { sentAt: 'desc' },
     include: { sequence: true }
   });
-  
-  console.log("sentEmails", sentEmails);
   
   // Find the highest order index that has been sent for this campaign
   // We'll look at the order indices of sequences in the current campaign configuration
@@ -127,8 +126,6 @@ async function findNextSequenceToSend(leadId: number, sequences: any[]): Promise
       }
     }
   }
-  
-  console.log("highestSentOrderIndex", highestSentOrderIndex);
   
   // Sort sequences by orderIndex
   const sortedSequences = [...sequences].sort((a, b) => a.orderIndex - b.orderIndex);

@@ -9,7 +9,8 @@ export async function middleware(request: NextRequest) {
     pathname === '/' ||
     pathname === '/signup' ||
     pathname.startsWith('/api/auth/') ||
-    pathname === '/api/gmail/callback'
+    pathname === '/api/gmail/callback' ||
+    pathname.startsWith('/api/email/track/')
   ) {
     return NextResponse.next();
   }
