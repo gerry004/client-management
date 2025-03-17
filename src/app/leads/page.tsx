@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Sidebar from '@/components/Sidebar';
 import LeadModal from '@/components/LeadModal';
-import SegmentModal from '@/components/SegmentModal';
 import EmailEditorModal from '@/components/EmailEditorModal';
 import ImportCSVModal from '@/components/ImportCSVModal';
 import { FiMail, FiEdit2, FiTrash2, FiClock, FiChevronLeft, FiChevronRight, FiChevronDown, FiChevronUp } from 'react-icons/fi';
@@ -36,9 +35,6 @@ export default function LeadsPage() {
     addLead,
     updateLead,
     deleteLead,
-    addSegment,
-    updateSegment,
-    deleteSegment,
     leadsPage,
     leadsPerPage,
     totalLeads,
@@ -50,7 +46,6 @@ export default function LeadsPage() {
   } = useAppContext();
   
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
-  const [isSegmentModalOpen, setIsSegmentModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -121,20 +116,6 @@ export default function LeadsPage() {
     if (!confirm('Are you sure you want to delete this lead?')) return;
     
     await deleteLead(id);
-  };
-
-  const handleAddSegment = async (name: string) => {
-    await addSegment(name);
-  };
-
-  const handleUpdateSegment = async (id: number, name: string) => {
-    await updateSegment(id, name);
-  };
-
-  const handleDeleteSegment = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this segment? This may affect leads assigned to this segment.')) return;
-    
-    await deleteSegment(id);
   };
 
   const handleViewEmailHistory = (lead: Lead) => {
@@ -352,7 +333,7 @@ export default function LeadsPage() {
               Export CSV
             </button>
             <button
-              onClick={() => setIsSegmentModalOpen(true)}
+              onClick={() => router.push('/segments')}
               className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
             >
               Manage Segments
@@ -508,15 +489,6 @@ export default function LeadsPage() {
           }}
           onSubmit={editingLead ? handleUpdateLead : handleAddLead}
           initialData={editingLead || undefined}
-          segments={segments}
-        />
-
-        <SegmentModal
-          isOpen={isSegmentModalOpen}
-          onClose={() => setIsSegmentModalOpen(false)}
-          onSubmit={handleAddSegment}
-          onUpdate={handleUpdateSegment}
-          onDelete={handleDeleteSegment}
           segments={segments}
         />
 
