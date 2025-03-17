@@ -1,6 +1,8 @@
 import './globals.css'
 import type { Metadata } from 'next'
 import React from 'react';
+import { AppProvider } from '@/contexts/AppContext';
+
 export const metadata: Metadata = {
   title: 'Client Management System'
 }
@@ -12,7 +14,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <AppProvider>
+          {children}
+        </AppProvider>
+      </body>
     </html>
   )
 } 

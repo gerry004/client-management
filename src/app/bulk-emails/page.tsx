@@ -1,47 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Segment } from "@prisma/client";
+import { useState } from "react";
 import Sidebar from "@/components/Sidebar";
-
-interface User {
-  name: string;
-  email: string;
-}
+import { useAppContext } from "@/contexts/AppContext";
 
 export default function BulkEmailsPage() {
-  const [segments, setSegments] = useState<Segment[]>([]);
+  const { user, segments } = useAppContext();
   const [selectedSegment, setSelectedSegment] = useState<string>("");
   const [subject, setSubject] = useState("");
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await fetch("/api/auth/user");
-        if (!response.ok) throw new Error("Failed to fetch user");
-        const data = await response.json();
-        setUser(data);
-      } catch (err) {
-        console.error("Error fetching user:", err);
-      }
-    };
-
-    fetchUser();
-    fetchSegments();
-  }, []);
-
-  const fetchSegments = async () => {
-    try {
-      const response = await fetch("/api/segments");
-      const data = await response.json();
-      setSegments(data);
-    } catch (error) {
-      console.error("Error fetching segments:", error);
-    }
-  };
 
   const handleSendEmails = async (e: React.FormEvent) => {
     e.preventDefault();

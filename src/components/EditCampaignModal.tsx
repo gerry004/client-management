@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { FiTrash2, FiX } from 'react-icons/fi';
+import { CreateCampaignForm } from './CreateCampaignModal';
 
 interface Segment {
   id: number;
@@ -7,36 +8,52 @@ interface Segment {
 }
 
 interface EmailSequence {
+  id: number;
   subject: string;
   content: string;
   delayDays: number;
   orderIndex: number;
 }
 
-export interface CreateCampaignForm {
+interface Campaign {
+  id: number;
   name: string;
   segmentId: number | null;
+  segment?: Segment;
   sequences: EmailSequence[];
+  createdAt: Date | string;
 }
 
-interface CreateCampaignModalProps {
+export interface EditCampaignForm extends CreateCampaignForm {
+  id: number;
+}
+
+interface EditCampaignModalProps {
   isOpen: boolean;
   onClose: () => void;
   segments: Segment[];
-  onSubmit: (data: CreateCampaignForm) => Promise<void>;
+  campaign: Campaign;
+  onSubmit: (data: EditCampaignForm) => Promise<void>;
 }
 
-export default function CreateCampaignModal({ 
+export default function EditCampaignModal({ 
   isOpen, 
   onClose, 
   segments, 
+  campaign,
   onSubmit 
-}: CreateCampaignModalProps) {
-  const [formData, setFormData] = useState<CreateCampaignForm>({
-    name: '',
-    segmentId: segments.length > 0 ? segments[0].id : null,
-    sequences: [{ subject: '', content: '', delayDays: 0, orderIndex: 0 }]
-  });
+}: EditCampaignModalProps) {
+  const [formData, setFormData] = useState<EditCampaignForm>(() => ({
+    id: campaign.id,
+    name: campaign.name,
+    segmentId: campaign.segmentId,
+    sequences: campaign.sequences.map(seq => ({
+      subject: seq.subject,
+      content: seq.content,
+      delayDays: seq.delayDays,
+      orderIndex: seq.orderIndex
+    }))
+  }));
 
   if (!isOpen) return null;
 
@@ -75,7 +92,7 @@ export default function CreateCampaignModal({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-[#2f2f2f] rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-white">Create New Campaign</h2>
+          <h2 className="text-xl font-bold text-white">Edit Campaign</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-white"
@@ -209,7 +226,7 @@ export default function CreateCampaignModal({
               type="submit"
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              Create Campaign
+              Update Campaign
             </button>
           </div>
         </form>

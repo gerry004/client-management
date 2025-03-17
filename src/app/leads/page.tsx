@@ -7,6 +7,7 @@ import SegmentModal from '@/components/SegmentModal';
 import EmailEditorModal from '@/components/EmailEditorModal';
 import { FiMail, FiEdit2, FiTrash2, FiClock } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
+import { useAppContext } from '@/contexts/AppContext';
 
 interface User {
   name: string;
@@ -29,9 +30,19 @@ interface Segment {
 }
 
 export default function LeadsPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [segments, setSegments] = useState<Segment[]>([]);
+  const { 
+    user, 
+    segments, 
+    leads, 
+    refreshLeads,
+    addLead,
+    updateLead,
+    deleteLead,
+    addSegment,
+    updateSegment,
+    deleteSegment
+  } = useAppContext();
+  
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
   const [isSegmentModalOpen, setIsSegmentModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
@@ -45,45 +56,6 @@ export default function LeadsPage() {
       .map(lead => lead.email)
       .filter((email): email is string => Boolean(email));
   }, [leads]);
-
-  useEffect(() => {
-    fetchUser();
-    fetchLeads();
-    fetchSegments();
-  }, []);
-
-  const fetchUser = async () => {
-    try {
-      const response = await fetch('/api/auth/user');
-      if (!response.ok) throw new Error('Failed to fetch user');
-      const data = await response.json();
-      setUser(data);
-    } catch (err) {
-      console.error('Error fetching user:', err);
-    }
-  };
-
-  const fetchLeads = async () => {
-    try {
-      const response = await fetch('/api/leads');
-      if (!response.ok) throw new Error('Failed to fetch leads');
-      const data = await response.json();
-      setLeads(data);
-    } catch (err) {
-      console.error('Error fetching leads:', err);
-    }
-  };
-
-  const fetchSegments = async () => {
-    try {
-      const response = await fetch('/api/segments');
-      if (!response.ok) throw new Error('Failed to fetch segments');
-      const data = await response.json();
-      setSegments(data);
-    } catch (err) {
-      console.error('Error fetching segments:', err);
-    }
-  };
 
   const fetchUnreadCounts = useCallback(async () => {
     try {
@@ -108,102 +80,52 @@ export default function LeadsPage() {
   }, [fetchUnreadCounts]);
 
   const handleAddLead = async (data: Omit<Lead, 'id'>) => {
-    try {
-      const response = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error('Failed to add lead');
-      fetchLeads();
-    } catch (err) {
-      console.error('Error adding lead:', err);
+    const success = await addLead(data);
+    if (success) {
+      setIsLeadModalOpen(false);
+    } else {
+      alert('Failed to add lead. Please try again.');
     }
   };
 
   const handleUpdateLead = async (data: Omit<Lead, 'id'>) => {
     if (!editingLead) return;
-    try {
-      const updateData = {
-        name: data.name,
-        company: data.company,
-        email: data.email,
-        phone: data.phone,
-        segmentId: data.segmentId,
-      };
-
-      const response = await fetch(`/api/leads/${editingLead.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update lead');
-      }
-      
-      fetchLeads();
+    
+    const updateData = {
+      name: data.name,
+      company: data.company,
+      email: data.email,
+      phone: data.phone,
+      segmentId: data.segmentId,
+    };
+    
+    const success = await updateLead(editingLead.id, updateData);
+    if (success) {
       setEditingLead(null);
       setIsLeadModalOpen(false);
-    } catch (err) {
-      console.error('Error updating lead:', err);
+    } else {
       alert('Failed to update lead. Please try again.');
     }
   };
 
   const handleDeleteLead = async (id: number) => {
     if (!confirm('Are you sure you want to delete this lead?')) return;
-    try {
-      const response = await fetch(`/api/leads/${id}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) throw new Error('Failed to delete lead');
-      fetchLeads();
-    } catch (err) {
-      console.error('Error deleting lead:', err);
-    }
+    
+    await deleteLead(id);
   };
 
   const handleAddSegment = async (name: string) => {
-    try {
-      const response = await fetch('/api/segments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
-      });
-      if (!response.ok) throw new Error('Failed to add segment');
-      fetchSegments();
-    } catch (err) {
-      console.error('Error adding segment:', err);
-    }
+    await addSegment(name);
   };
 
   const handleUpdateSegment = async (id: number, name: string) => {
-    try {
-      const response = await fetch(`/api/segments/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
-      });
-      if (!response.ok) throw new Error('Failed to update segment');
-      fetchSegments();
-    } catch (err) {
-      console.error('Error updating segment:', err);
-    }
+    await updateSegment(id, name);
   };
 
   const handleDeleteSegment = async (id: number) => {
     if (!confirm('Are you sure you want to delete this segment? This may affect leads assigned to this segment.')) return;
-    try {
-      const response = await fetch(`/api/segments/${id}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) throw new Error('Failed to delete segment');
-      fetchSegments();
-    } catch (err) {
-      console.error('Error deleting segment:', err);
-    }
+    
+    await deleteSegment(id);
   };
 
   const handleViewEmailHistory = (lead: Lead) => {
