@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getGmailClient } from '@/lib/gmail';
 import { getUserFromRequest } from '@/lib/auth';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: Request) {
   try {
@@ -30,10 +31,18 @@ export async function POST(request: Request) {
     const emailPromises = leads.map(async (lead) => {
       if (!lead.email) return; // Skip leads without email addresses
 
+      // Generate a tracking ID
+      const trackingId = uuidv4();
+      
+      // Add tracking pixel to the content
+      const trackingPixel = `<img src="${process.env.NEXT_PUBLIC_APP_URL}/api/email/track/${trackingId}" width="1" height="1" />`;
+
       // Personalize content for each lead
       const personalizedContent = content
         .replace(/\{{name\}}/g, lead.name || '')
         .replace(/\{{email\}}/g, lead.email);
+        
+      const trackedContent = personalizedContent + trackingPixel;
 
       try {
         // Create email message
@@ -43,7 +52,7 @@ export async function POST(request: Request) {
           `To: ${lead.email}`,
           `Subject: ${subject}`,
           '',
-          personalizedContent
+          trackedContent
         ].join('\r\n');
 
         // Send email using Gmail API directly
@@ -59,9 +68,10 @@ export async function POST(request: Request) {
           data: {
             recipientEmail: lead.email,
             subject,
-            content: personalizedContent,
+            content: trackedContent,
             status: 'SENT',
             type: 'BULK',
+            trackingId,
           },
         });
       } catch (error) {

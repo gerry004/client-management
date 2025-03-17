@@ -93,14 +93,18 @@ model EmailTracking {
 }
 
 model EmailLog {
-  id             String   @id @default(cuid())
-  recipientEmail String   @map("recipient_email")
+  id             String    @id @default(cuid())
+  recipientEmail String    @map("recipient_email")
   subject        String   
-  content        String   @db.Text
-  status         String
+  content        String    @db.Text
+  status         String   
   type           String
-  error          String?  @db.Text
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  error          String?   @db.Text
+  trackingId     String?   @unique @map("tracking_id")
+  opened         Boolean   @default(false)
+  openCount      Int       @default(0) @map("open_count")
+  openedAt       DateTime? @map("opened_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
   @@map("email_logs")
 }
