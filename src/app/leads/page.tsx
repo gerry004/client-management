@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import LeadModal from '@/components/LeadModal';
 import SegmentModal from '@/components/SegmentModal';
 import EmailEditorModal from '@/components/EmailEditorModal';
+import ImportCSVModal from '@/components/ImportCSVModal';
 import { FiMail, FiEdit2, FiTrash2, FiClock } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/contexts/AppContext';
@@ -49,6 +50,7 @@ export default function LeadsPage() {
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const router = useRouter();
 
   const memoizedUnreadCounts = useMemo(() => {
@@ -136,6 +138,68 @@ export default function LeadsPage() {
     router.push(`/email-history/${encodeURIComponent(lead.email)}`);
   };
 
+  const handleImportLeads = async (mappedData: any[]) => {
+    try {
+      const response = await fetch('/api/leads/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leads: mappedData }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to import leads');
+      }
+      
+      await refreshLeads();
+      return true;
+    } catch (error) {
+      console.error('Error importing leads:', error);
+      return false;
+    }
+  };
+  
+  const leadFields = [
+    { key: 'name', label: 'Name' },
+    { key: 'company', label: 'Company' },
+    { key: 'email', label: 'Email' },
+    { key: 'phone', label: 'Phone' },
+    { key: 'segmentId', label: 'Segment ID' },
+  ];
+
+  const handleExportCSV = () => {
+    // Convert leads to CSV format
+    const headers = ['Name', 'Company', 'Email', 'Phone', 'Segment'];
+    
+    const csvRows = [
+      headers.join(','), // Header row
+      ...leads.map(lead => [
+        // Escape values that might contain commas
+        `"${lead.name.replace(/"/g, '""')}"`,
+        `"${lead.company ? lead.company.replace(/"/g, '""') : ''}"`,
+        `"${lead.email || ''}"`,
+        `"${lead.phone || ''}"`,
+        `"${lead.segment?.name || ''}"`,
+      ].join(','))
+    ];
+    
+    const csvContent = csvRows.join('\n');
+    
+    // Create a blob and download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    
+    // Set up download attributes
+    link.setAttribute('href', url);
+    link.setAttribute('download', `leads-export-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    
+    // Append to document, trigger download and clean up
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="flex h-screen bg-[#1f1f1f]">
       <Sidebar user={user} />
@@ -143,6 +207,18 @@ export default function LeadsPage() {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-white">Leads</h1>
           <div className="space-x-4">
+            <button
+              onClick={() => setIsImportModalOpen(true)}
+              className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+            >
+              Import CSV
+            </button>
+            <button
+              onClick={handleExportCSV}
+              className="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700"
+            >
+              Export CSV
+            </button>
             <button
               onClick={() => setIsSegmentModalOpen(true)}
               className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
@@ -255,6 +331,13 @@ export default function LeadsPage() {
           }}
           recipientEmail={selectedLead?.email || ''}
           recipientName={selectedLead?.name || ''}
+        />
+        
+        <ImportCSVModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
+          onImport={handleImportLeads}
+          fields={leadFields}
         />
       </div>
     </div>
