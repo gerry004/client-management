@@ -13,9 +13,11 @@ import { useAppContext } from '@/contexts/AppContext';
 interface Lead {
   id: number;
   name: string;
-  company?: string;
+  website?: string;
+  mapsLink?: string;
   email?: string;
   phone?: string;
+  searchTerm?: string;
   segment?: Segment;
   segmentId?: number;
 }
@@ -84,7 +86,7 @@ export default function LeadsPage() {
     fetchUnreadCounts();
   }, [fetchUnreadCounts]);
 
-  const handleAddLead = async (data: Omit<Lead, 'id'>) => {
+  const handleAddLead = async (data: any) => {
     const success = await addLead(data);
     if (success) {
       setIsLeadModalOpen(false);
@@ -98,9 +100,11 @@ export default function LeadsPage() {
     
     const updateData = {
       name: data.name,
-      company: data.company,
+      website: data.website,
+      mapsLink: data.mapsLink,
       email: data.email,
       phone: data.phone,
+      searchTerm: data.searchTerm,
       segmentId: data.segmentId,
     };
     
@@ -163,24 +167,28 @@ export default function LeadsPage() {
   
   const leadFields = [
     { key: 'name', label: 'Name' },
-    { key: 'company', label: 'Company' },
+    { key: 'website', label: 'Website' },
+    { key: 'mapsLink', label: 'Maps Link' },
     { key: 'email', label: 'Email' },
     { key: 'phone', label: 'Phone' },
-    { key: 'segmentId', label: 'Segment ID' },
+    { key: 'searchTerm', label: 'Search Term' },
+    { key: 'segment', label: 'Segment' },
   ];
 
   const handleExportCSV = () => {
     // Convert leads to CSV format
-    const headers = ['Name', 'Company', 'Email', 'Phone', 'Segment'];
+    const headers = ['Name', 'Website', 'Maps Link', 'Email', 'Phone', 'Search Term', 'Segment'];
     
     const csvRows = [
       headers.join(','), // Header row
       ...leads.map(lead => [
         // Escape values that might contain commas
         `"${lead.name.replace(/"/g, '""')}"`,
-        `"${lead.company ? lead.company.replace(/"/g, '""') : ''}"`,
+        `"${lead.website ? lead.website.replace(/"/g, '""') : ''}"`,
+        `"${lead.mapsLink ? lead.mapsLink.replace(/"/g, '""') : ''}"`,
         `"${lead.email || ''}"`,
         `"${lead.phone || ''}"`,
+        `"${lead.searchTerm ? lead.searchTerm.replace(/"/g, '""') : ''}"`,
         `"${lead.segment?.name || ''}"`,
       ].join(','))
     ];
@@ -304,16 +312,16 @@ export default function LeadsPage() {
         refreshLeads();
       }
     }
-  }, []);
+  }, [leadsSortField, leadsSortOrder, refreshLeads]);
 
   const handleSort = (field: string) => {
-    if (field === leadsSortField) {
-      setLeadsSortOrder(leadsSortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setLeadsSortField(field);
-      setLeadsSortOrder('asc');
-    }
-    setLeadsPage(1);
+    const newOrder = field === leadsSortField && leadsSortOrder === 'asc' ? 'desc' : 'asc';
+    setLeadsSortField(field);
+    setLeadsSortOrder(newOrder);
+    
+    // Save sort preferences to localStorage
+    localStorage.setItem('leadsSortField', field);
+    localStorage.setItem('leadsSortOrder', newOrder);
   };
   
   const renderSortIndicator = (field: string) => {
@@ -370,9 +378,15 @@ export default function LeadsPage() {
                 </th>
                 <th 
                   className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-700"
-                  onClick={() => handleSort('company')}
+                  onClick={() => handleSort('website')}
                 >
-                  Company {renderSortIndicator('company')}
+                  Website {renderSortIndicator('website')}
+                </th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-700"
+                  onClick={() => handleSort('mapsLink')}
+                >
+                  Maps Link {renderSortIndicator('mapsLink')}
                 </th>
                 <th 
                   className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-700"
@@ -385,6 +399,12 @@ export default function LeadsPage() {
                   onClick={() => handleSort('phone')}
                 >
                   Phone {renderSortIndicator('phone')}
+                </th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-700"
+                  onClick={() => handleSort('searchTerm')}
+                >
+                  Search Term {renderSortIndicator('searchTerm')}
                 </th>
                 <th 
                   className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-700"
@@ -401,9 +421,33 @@ export default function LeadsPage() {
               {leads.map((lead) => (
                 <tr key={lead.id}>
                   <td className="px-6 py-4 text-sm text-white">{lead.name}</td>
-                  <td className="px-6 py-4 text-sm text-white">{lead.company || '-'}</td>
+                  <td className="px-6 py-4 text-sm text-white">
+                    {lead.website ? (
+                      <a 
+                        href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:underline"
+                      >
+                        {lead.website}
+                      </a>
+                    ) : '-'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-white">
+                    {lead.mapsLink ? (
+                      <a 
+                        href={lead.mapsLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:underline"
+                      >
+                        {lead.mapsLink}
+                      </a>
+                    ) : '-'}
+                  </td>
                   <td className="px-6 py-4 text-sm text-white">{lead.email || '-'}</td>
                   <td className="px-6 py-4 text-sm text-white">{lead.phone || '-'}</td>
+                  <td className="px-6 py-4 text-sm text-white">{lead.searchTerm || '-'}</td>
                   <td className="px-6 py-4 text-sm text-white">{lead.segment?.name || '-'}</td>
                   <td className="px-6 py-4 text-sm text-white space-x-3 flex items-center">
                     <div className="flex space-x-3">

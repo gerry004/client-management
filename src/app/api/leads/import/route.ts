@@ -16,6 +16,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid data format' }, { status: 400 });
     }
     
+    // Get all existing segments for lookup
+    const existingSegments = await prisma.segment.findMany();
+    const segmentNameToId = new Map(existingSegments.map(s => [s.name.toLowerCase(), s.id]));
+    
+    // Track new segments to create
+    const newSegmentNames = new Set();
+    
+    // First pass: identify new segments
+    leads.forEach(lead => {
+      if (lead.segment && typeof lead.segment === 'string' && lead.segment.trim()) {
+        const segmentName = lead.segment.trim();
+        const segmentNameLower = segmentName.toLowerCase();
+        
+        if (!segmentNameToId.has(segmentNameLower)) {
+          newSegmentNames.add(segmentName);
+        }
+      }
+    });
+    
+    // Create new segments
+    if (newSegmentNames.size > 0) {
+      const newSegments = await prisma.segment.createMany({
+        data: Array.from(newSegmentNames).map(name => ({ name: name as string })),
+        skipDuplicates: true,
+      });
+      
+      // Refresh segment lookup after creating new ones
+      const allSegments = await prisma.segment.findMany();
+      segmentNameToId.clear();
+      allSegments.forEach(s => segmentNameToId.set(s.name.toLowerCase(), s.id));
+    }
+    
     // Process in batches of 100 for efficiency
     const batchSize = 100;
     let successCount = 0;
@@ -30,12 +62,21 @@ export async function POST(req: NextRequest) {
           return null;
         }
         
+        // Look up segment ID by name if provided
+        let segmentId = null;
+        if (lead.segment && typeof lead.segment === 'string' && lead.segment.trim()) {
+          const segmentNameLower = lead.segment.trim().toLowerCase();
+          segmentId = segmentNameToId.get(segmentNameLower) || null;
+        }
+        
         return {
           name: lead.name,
-          company: lead.company || null,
+          website: lead.website || null,
+          mapsLink: lead.mapsLink || null,
           email: lead.email || null,
           phone: lead.phone || null,
-          segmentId: lead.segmentId ? parseInt(lead.segmentId, 10) : null,
+          searchTerm: lead.searchTerm || null,
+          segmentId: segmentId,
         };
       }).filter(Boolean);
       

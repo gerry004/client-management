@@ -17,9 +17,11 @@ export async function PUT(
     // Only include the fields that can be updated
     const updateData = {
       name: data.name,
-      company: data.company,
+      website: data.website,
+      mapsLink: data.mapsLink,
       email: data.email,
       phone: data.phone,
+      searchTerm: data.searchTerm,
       segmentId: data.segmentId,
     };
 

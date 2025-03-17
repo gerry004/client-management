@@ -39,14 +39,16 @@ model Segment {
 }
 
 model Lead {
-  id        Int       @id @default(autoincrement())
-  name      String    @map("name")
-  company   String?   @map("company")
-  email     String?   @map("email")
-  phone     String?   @map("phone")
-  segmentId Int?      @map("segment_id")
-  segment   Segment?  @relation(fields: [segmentId], references: [id])
-  createdAt DateTime  @default(now()) @map("created_at")
+  id          Int       @id @default(autoincrement())
+  name        String    @map("name")
+  website     String?   @map("website")
+  mapsLink    String?   @map("maps_link")
+  email       String?   @map("email")
+  phone       String?   @map("phone")
+  searchTerm  String?   @map("search_term")
+  segmentId   Int?      @map("segment_id")
+  segment     Segment?  @relation(fields: [segmentId], references: [id])
+  createdAt   DateTime  @default(now()) @map("created_at")
   emailTracking EmailTracking[] @relation("LeadToEmailTracking")
   @@map("leads")
 }

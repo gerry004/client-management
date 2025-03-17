@@ -133,6 +133,7 @@ export default function ImportCSVModal({ isOpen, onClose, onImport, fields }: Im
             headers.forEach((header, index) => {
               const dbField = mapping[header];
               if (dbField && values[index] !== undefined) {
+                // Special handling for segment - keep as string for API to handle
                 record[dbField] = values[index].trim();
               }
             });

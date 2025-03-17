@@ -19,9 +19,11 @@ interface Segment {
 interface Lead {
   id: number;
   name: string;
-  company?: string;
+  website?: string;
+  mapsLink?: string;
   email?: string;
   phone?: string;
+  searchTerm?: string;
   segment?: Segment;
   segmentId?: number;
 }

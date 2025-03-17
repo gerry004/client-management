@@ -8,9 +8,11 @@ interface Segment {
 
 interface LeadFormData {
   name: string;
-  company?: string;
+  website?: string;
+  mapsLink?: string;
   email?: string;
   phone?: string;
+  searchTerm?: string;
   segmentId?: number;
 }
 
@@ -25,9 +27,11 @@ interface LeadModalProps {
 export default function LeadModal({ isOpen, onClose, onSubmit, initialData, segments }: LeadModalProps) {
   const [formData, setFormData] = useState<LeadFormData>({
     name: '',
-    company: '',
+    website: '',
+    mapsLink: '',
     email: '',
     phone: '',
+    searchTerm: '',
     segmentId: undefined,
   });
 
@@ -35,17 +39,21 @@ export default function LeadModal({ isOpen, onClose, onSubmit, initialData, segm
     if (initialData) {
       setFormData({
         name: initialData.name,
-        company: initialData.company || '',
+        website: initialData.website || '',
+        mapsLink: initialData.mapsLink || '',
         email: initialData.email || '',
         phone: initialData.phone || '',
+        searchTerm: initialData.searchTerm || '',
         segmentId: initialData.segmentId,
       });
     } else {
       setFormData({
         name: '',
-        company: '',
+        website: '',
+        mapsLink: '',
         email: '',
         phone: '',
+        searchTerm: '',
         segmentId: undefined,
       });
     }
@@ -75,11 +83,20 @@ export default function LeadModal({ isOpen, onClose, onSubmit, initialData, segm
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-300">Company</label>
+          <label className="block text-sm font-medium text-gray-300">Website</label>
           <input
             type="text"
-            value={formData.company || ''}
-            onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+            value={formData.website || ''}
+            onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+            className="mt-1 block w-full rounded-md bg-[#2d2d2d] border-gray-600 text-white"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-300">Maps Link</label>
+          <input
+            type="text"
+            value={formData.mapsLink || ''}
+            onChange={(e) => setFormData({ ...formData, mapsLink: e.target.value })}
             className="mt-1 block w-full rounded-md bg-[#2d2d2d] border-gray-600 text-white"
           />
         </div>
@@ -98,6 +115,15 @@ export default function LeadModal({ isOpen, onClose, onSubmit, initialData, segm
             type="tel"
             value={formData.phone || ''}
             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            className="mt-1 block w-full rounded-md bg-[#2d2d2d] border-gray-600 text-white"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-300">Search Term</label>
+          <input
+            type="text"
+            value={formData.searchTerm || ''}
+            onChange={(e) => setFormData({ ...formData, searchTerm: e.target.value })}
             className="mt-1 block w-full rounded-md bg-[#2d2d2d] border-gray-600 text-white"
           />
         </div>
