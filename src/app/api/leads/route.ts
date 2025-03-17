@@ -6,12 +6,17 @@ export async function GET(request: Request) {
   try {
     const user = await getUserFromRequest();
     if (!user) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const perPage = parseInt(searchParams.get('perPage') || '15', 10);
     const sortField = searchParams.get('sortField') || 'createdAt';
     const sortOrder = (searchParams.get('sortOrder') || 'desc') as 'asc' | 'desc';
+
+    // Calculate pagination
+    const skip = (page - 1) * perPage;
 
     const leads = await prisma.lead.findMany({
       include: {
@@ -19,15 +24,15 @@ export async function GET(request: Request) {
       },
       orderBy: {
         [sortField]: sortOrder
-      }
+      },
+      skip,
+      take: perPage
     });
 
-    return new NextResponse(JSON.stringify(leads), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return NextResponse.json({ leads });
   } catch (error) {
     console.error('Error fetching leads:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch leads' }, { status: 500 });
   }
 }
 

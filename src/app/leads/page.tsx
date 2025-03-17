@@ -6,14 +6,9 @@ import LeadModal from '@/components/LeadModal';
 import SegmentModal from '@/components/SegmentModal';
 import EmailEditorModal from '@/components/EmailEditorModal';
 import ImportCSVModal from '@/components/ImportCSVModal';
-import { FiMail, FiEdit2, FiTrash2, FiClock } from 'react-icons/fi';
+import { FiMail, FiEdit2, FiTrash2, FiClock, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/contexts/AppContext';
-
-interface User {
-  name: string;
-  email: string;
-}
 
 interface Lead {
   id: number;
@@ -41,7 +36,11 @@ export default function LeadsPage() {
     deleteLead,
     addSegment,
     updateSegment,
-    deleteSegment
+    deleteSegment,
+    leadsPage,
+    leadsPerPage,
+    totalLeads,
+    setLeadsPage
   } = useAppContext();
   
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
@@ -200,6 +199,84 @@ export default function LeadsPage() {
     document.body.removeChild(link);
   };
 
+  const totalPages = Math.ceil(totalLeads / leadsPerPage);
+  
+  const goToNextPage = () => {
+    if (leadsPage < totalPages) {
+      setLeadsPage(leadsPage + 1);
+    }
+  };
+  
+  const goToPreviousPage = () => {
+    if (leadsPage > 1) {
+      setLeadsPage(leadsPage - 1);
+    }
+  };
+  
+  const goToPage = (pageNumber: number) => {
+    setLeadsPage(pageNumber);
+  };
+  
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+    
+    const pageNumbers = [];
+    const maxPageButtons = 5;
+    
+    let startPage = Math.max(1, leadsPage - Math.floor(maxPageButtons / 2));
+    let endPage = Math.min(totalPages, startPage + maxPageButtons - 1);
+    
+    if (endPage - startPage + 1 < maxPageButtons) {
+      startPage = Math.max(1, endPage - maxPageButtons + 1);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pageNumbers.push(i);
+    }
+    
+    const startItem = (leadsPage - 1) * leadsPerPage + 1;
+    const endItem = Math.min(leadsPage * leadsPerPage, totalLeads);
+    
+    return (
+      <div className="flex justify-between items-center mt-4 text-white">
+        <div>
+          Showing {startItem}-{endItem} of {totalLeads} leads
+        </div>
+        <div className="flex space-x-2">
+          <button 
+            onClick={goToPreviousPage} 
+            disabled={leadsPage === 1}
+            className={`p-2 rounded ${leadsPage === 1 ? 'text-gray-500' : 'hover:bg-gray-700'}`}
+          >
+            <FiChevronLeft />
+          </button>
+          
+          {pageNumbers.map(number => (
+            <button
+              key={number}
+              onClick={() => goToPage(number)}
+              className={`px-3 py-1 rounded ${
+                leadsPage === number 
+                  ? 'bg-blue-600 text-white' 
+                  : 'hover:bg-gray-700'
+              }`}
+            >
+              {number}
+            </button>
+          ))}
+          
+          <button 
+            onClick={goToNextPage} 
+            disabled={leadsPage === totalPages}
+            className={`p-2 rounded ${leadsPage === totalPages ? 'text-gray-500' : 'hover:bg-gray-700'}`}
+          >
+            <FiChevronRight />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex h-screen bg-[#1f1f1f]">
       <Sidebar user={user} />
@@ -302,6 +379,8 @@ export default function LeadsPage() {
             </tbody>
           </table>
         </div>
+        
+        {renderPagination()}
 
         <LeadModal
           isOpen={isLeadModalOpen}

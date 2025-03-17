@@ -4,6 +4,7 @@ import { CreateCampaignForm } from '@/components/CreateCampaignModal';
 import { EditCampaignForm } from '@/components/EditCampaignModal';
 import { EmailSequence } from '@prisma/client';
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 
 interface User {
   name: string;
@@ -52,6 +53,11 @@ interface AppContextType {
   addCampaign: (data: CreateCampaignForm) => Promise<boolean>;
   updateCampaign: (id: number, data: EditCampaignForm | Partial<Campaign>) => Promise<boolean>;
   deleteCampaign: (id: number) => Promise<boolean>;
+  leadsPage: number;
+  leadsPerPage: number;
+  totalLeads: number;
+  setLeadsPage: (page: number) => void;
+  setLeadsPerPage: (perPage: number) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -62,6 +68,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [leadsPage, setLeadsPage] = useState(1);
+  const [leadsPerPage, setLeadsPerPage] = useState(15);
+  const [totalLeads, setTotalLeads] = useState(0);
+  
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     const initialize = async () => {
@@ -95,12 +108,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const fetchLeads = async () => {
+  const fetchLeads = async (page = leadsPage, perPage = leadsPerPage) => {
     try {
-      const response = await fetch('/api/leads');
+      if (totalLeads === 0) {
+        const countResponse = await fetch('/api/leads/count');
+        if (countResponse.ok) {
+          const { count } = await countResponse.json();
+          setTotalLeads(count);
+        }
+      }
+      
+      const response = await fetch(`/api/leads?page=${page}&perPage=${perPage}`);
       if (!response.ok) throw new Error('Failed to fetch leads');
       const data = await response.json();
-      setLeads(data);
+      setLeads(data.leads);
+      
+      if (pathname === '/leads') {
+        const params = new URLSearchParams(searchParams);
+        params.set('page', page.toString());
+        params.set('perPage', perPage.toString());
+        router.replace(`${pathname}?${params.toString()}`);
+      }
     } catch (err) {
       console.error('Error fetching leads:', err);
     }
@@ -122,8 +150,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshLeads = useCallback(async () => {
-    await fetchLeads();
-  }, []);
+    await fetchLeads(leadsPage, leadsPerPage);
+    
+    const countResponse = await fetch('/api/leads/count');
+    if (countResponse.ok) {
+      const { count } = await countResponse.json();
+      setTotalLeads(count);
+    }
+  }, [leadsPage, leadsPerPage]);
 
   const refreshCampaigns = useCallback(async () => {
     await fetchCampaigns();
@@ -294,6 +328,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Initialize with URL params if available
+  useEffect(() => {
+    if (pathname === '/leads') {
+      const page = parseInt(searchParams.get('page') || '1', 10);
+      const perPage = parseInt(searchParams.get('perPage') || '15', 10);
+      
+      if (page !== leadsPage) {
+        setLeadsPage(page);
+      }
+      
+      if (perPage !== leadsPerPage) {
+        setLeadsPerPage(perPage);
+      }
+      
+      fetchLeads(page, perPage);
+    }
+  }, [pathname, searchParams]);
+
+  // Update fetchLeads when pagination changes
+  useEffect(() => {
+    if (pathname === '/leads') {
+      fetchLeads(leadsPage, leadsPerPage);
+    }
+  }, [leadsPage, leadsPerPage]);
+
   const value = {
     user,
     segments,
@@ -312,6 +371,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addCampaign,
     updateCampaign,
     deleteCampaign,
+    leadsPage,
+    leadsPerPage,
+    totalLeads,
+    setLeadsPage,
+    setLeadsPerPage,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
