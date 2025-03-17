@@ -6,7 +6,7 @@ import LeadModal from '@/components/LeadModal';
 import SegmentModal from '@/components/SegmentModal';
 import EmailEditorModal from '@/components/EmailEditorModal';
 import ImportCSVModal from '@/components/ImportCSVModal';
-import { FiMail, FiEdit2, FiTrash2, FiClock, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiMail, FiEdit2, FiTrash2, FiClock, FiChevronLeft, FiChevronRight, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/contexts/AppContext';
 
@@ -40,7 +40,11 @@ export default function LeadsPage() {
     leadsPage,
     leadsPerPage,
     totalLeads,
-    setLeadsPage
+    setLeadsPage,
+    leadsSortField,
+    leadsSortOrder,
+    setLeadsSortField,
+    setLeadsSortOrder
   } = useAppContext();
   
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
@@ -277,6 +281,49 @@ export default function LeadsPage() {
     );
   };
 
+  // Load sort state from localStorage on component mount and refresh leads with it
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedSortField = localStorage.getItem('leadsSortField');
+      const savedSortOrder = localStorage.getItem('leadsSortOrder') as 'asc' | 'desc' | null;
+      
+      let shouldRefresh = false;
+      
+      if (savedSortField && savedSortField !== leadsSortField) {
+        setLeadsSortField(savedSortField);
+        shouldRefresh = true;
+      }
+      
+      if (savedSortOrder && savedSortOrder !== leadsSortOrder) {
+        setLeadsSortOrder(savedSortOrder);
+        shouldRefresh = true;
+      }
+      
+      // If we changed the sort settings, refresh the leads
+      if (shouldRefresh) {
+        refreshLeads();
+      }
+    }
+  }, []);
+
+  const handleSort = (field: string) => {
+    if (field === leadsSortField) {
+      setLeadsSortOrder(leadsSortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setLeadsSortField(field);
+      setLeadsSortOrder('asc');
+    }
+    setLeadsPage(1);
+  };
+  
+  const renderSortIndicator = (field: string) => {
+    if (field !== leadsSortField) return null;
+    
+    return leadsSortOrder === 'asc' 
+      ? <FiChevronUp className="inline ml-1" /> 
+      : <FiChevronDown className="inline ml-1" />;
+  };
+
   return (
     <div className="flex h-screen bg-[#1f1f1f]">
       <Sidebar user={user} />
@@ -315,12 +362,39 @@ export default function LeadsPage() {
           <table className="min-w-full divide-y divide-gray-600">
             <thead className="bg-[#252525]">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Company</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Phone</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Segment</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-700"
+                  onClick={() => handleSort('name')}
+                >
+                  Name {renderSortIndicator('name')}
+                </th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-700"
+                  onClick={() => handleSort('company')}
+                >
+                  Company {renderSortIndicator('company')}
+                </th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-700"
+                  onClick={() => handleSort('email')}
+                >
+                  Email {renderSortIndicator('email')}
+                </th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-700"
+                  onClick={() => handleSort('phone')}
+                >
+                  Phone {renderSortIndicator('phone')}
+                </th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-700"
+                  onClick={() => handleSort('segmentId')}
+                >
+                  Segment {renderSortIndicator('segmentId')}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-600">

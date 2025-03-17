@@ -58,6 +58,10 @@ interface AppContextType {
   totalLeads: number;
   setLeadsPage: (page: number) => void;
   setLeadsPerPage: (perPage: number) => void;
+  leadsSortField: string;
+  leadsSortOrder: 'asc' | 'desc';
+  setLeadsSortField: (field: string) => void;
+  setLeadsSortOrder: (order: 'asc' | 'desc') => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -71,6 +75,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [leadsPage, setLeadsPage] = useState(1);
   const [leadsPerPage, setLeadsPerPage] = useState(15);
   const [totalLeads, setTotalLeads] = useState(0);
+  const [leadsSortField, setLeadsSortField] = useState('createdAt');
+  const [leadsSortOrder, setLeadsSortOrder] = useState<'asc' | 'desc'>('desc');
   
   const router = useRouter();
   const pathname = usePathname();
@@ -118,7 +124,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       }
       
-      const response = await fetch(`/api/leads?page=${page}&perPage=${perPage}`);
+      const response = await fetch(
+        `/api/leads?page=${page}&perPage=${perPage}&sortField=${leadsSortField}&sortOrder=${leadsSortOrder}`
+      );
       if (!response.ok) throw new Error('Failed to fetch leads');
       const data = await response.json();
       setLeads(data.leads);
@@ -127,6 +135,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const params = new URLSearchParams(searchParams);
         params.set('page', page.toString());
         params.set('perPage', perPage.toString());
+        params.delete('sortField');
+        params.delete('sortOrder');
         router.replace(`${pathname}?${params.toString()}`);
       }
     } catch (err) {
@@ -328,7 +338,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Initialize with URL params if available
+  // Initialize with URL params for pagination only
   useEffect(() => {
     if (pathname === '/leads') {
       const page = parseInt(searchParams.get('page') || '1', 10);
@@ -346,12 +356,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [pathname, searchParams]);
 
-  // Update fetchLeads when pagination changes
+  // Update fetchLeads when pagination or sorting changes
   useEffect(() => {
     if (pathname === '/leads') {
       fetchLeads(leadsPage, leadsPerPage);
     }
-  }, [leadsPage, leadsPerPage]);
+  }, [leadsPage, leadsPerPage, leadsSortField, leadsSortOrder]);
 
   const value = {
     user,
@@ -376,6 +386,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     totalLeads,
     setLeadsPage,
     setLeadsPerPage,
+    leadsSortField,
+    leadsSortOrder,
+    setLeadsSortField,
+    setLeadsSortOrder,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
