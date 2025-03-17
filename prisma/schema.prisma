@@ -19,11 +19,11 @@ model User {
 
 model UserSettings {
   id                Int       @id @default(autoincrement())
-  userId            Int       @unique
+  userId            Int       @unique @map("user_id")
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  gmailAccessToken  String?
-  gmailRefreshToken String?
-  gmailTokenExpiry  DateTime?
+  gmailAccessToken  String?   @map("gmail_access_token")
+  gmailRefreshToken String?   @map("gmail_refresh_token")
+  gmailTokenExpiry  DateTime? @map("gmail_token_expiry")
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
   @@map("user_settings")
@@ -54,8 +54,8 @@ model Lead {
 model EmailCampaign {
   id          Int       @id @default(autoincrement())
   name        String
-  segmentId   Int?
-  segment     Segment?   @relation(fields: [segmentId], references: [id])
+  segmentId   Int?      @map("segment_id")
+  segment     Segment?  @relation(fields: [segmentId], references: [id])
   sequences   EmailSequence[] @relation("CampaignToSequence")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
@@ -94,13 +94,13 @@ model EmailTracking {
 
 model EmailLog {
   id             String   @id @default(cuid())
-  recipientEmail String
-  subject        String
+  recipientEmail String   @map("recipient_email")
+  subject        String   
   content        String   @db.Text
-  status         String   // SENT, FAILED
-  type           String   // BULK, CAMPAIGN, INDIVIDUAL
+  status         String
+  type           String
   error          String?  @db.Text
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
   @@map("email_logs")
 }
