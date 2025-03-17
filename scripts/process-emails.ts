@@ -34,6 +34,12 @@ async function processEmails() {
     });
 
     for (const campaign of campaigns) {
+      // Skip campaigns without a segment
+      if (!campaign.segment || !campaign.segment.leads) {
+        console.log(`Skipping campaign ${campaign.id} - ${campaign.name} because it has no segment or leads`);
+        continue;
+      }
+
       for (const lead of campaign.segment.leads) {
         // Find the next sequence that should be sent for this lead
         const { nextSequence, canSendNow } = await findNextSequenceToSend(lead.id, campaign.sequences);
