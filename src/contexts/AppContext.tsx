@@ -4,7 +4,7 @@ import { CreateCampaignForm } from '@/components/CreateCampaignModal';
 import { EditCampaignForm } from '@/components/EditCampaignModal';
 import { EmailSequence } from '@prisma/client';
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface User {
   name: string;
@@ -82,7 +82,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
     const initialize = async () => {
@@ -134,12 +133,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setLeads(data.leads);
       
       if (pathname === '/leads') {
-        const params = new URLSearchParams(searchParams);
-        params.set('page', page.toString());
-        params.set('perPage', perPage.toString());
-        params.delete('sortField');
-        params.delete('sortOrder');
-        router.replace(`${pathname}?${params.toString()}`);
+        const currentParams = new URLSearchParams(window.location.search);
+        currentParams.set('page', page.toString());
+        currentParams.set('perPage', perPage.toString());
+        currentParams.delete('sortField');
+        currentParams.delete('sortOrder');
+        router.replace(`${pathname}?${currentParams.toString()}`);
       }
     } catch (err) {
       console.error('Error fetching leads:', err);
@@ -343,8 +342,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Initialize with URL params for pagination only
   useEffect(() => {
     if (pathname === '/leads') {
-      const page = parseInt(searchParams.get('page') || '1', 10);
-      const perPage = parseInt(searchParams.get('perPage') || '15', 10);
+      // Get search params from the URL directly
+      const params = new URLSearchParams(window.location.search);
+      const page = parseInt(params.get('page') || '1', 10);
+      const perPage = parseInt(params.get('perPage') || '15', 10);
       
       if (page !== leadsPage) {
         setLeadsPage(page);
@@ -356,7 +357,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       
       fetchLeads(page, perPage);
     }
-  }, [pathname, searchParams]);
+  }, [pathname]);
 
   // Update fetchLeads when pagination or sorting changes
   useEffect(() => {
